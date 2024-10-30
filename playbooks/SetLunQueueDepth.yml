@@ -1,0 +1,8 @@
+---
+- name: Sets the lun queue depth to 128 for nfnic
+  hosts: all
+  gather_facts: no
+  vars:
+    ansible_python_interpreter: /bin/python
+  roles:
+    - SetLunQueueDepth

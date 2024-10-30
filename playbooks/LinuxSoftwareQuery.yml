@@ -1,0 +1,7 @@
+---
+- name: Searching to see if a package is installed
+  hosts: all
+  gather_facts: yes
+
+  roles:
+    - LinuxSoftwareQuery

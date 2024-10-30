@@ -1,0 +1,10 @@
+---
+- name: List vCenter Distributed Networks
+  hosts: all
+  gather_facts: no
+  collections:
+    - community.windows
+    - community.vmware
+
+  roles:
+    - listvcenternetworks

@@ -1,0 +1,8 @@
+---
+- name: Gather vHBA data about an ESXi Host through vCenter and Intersight
+  hosts: all
+  gather_facts: no
+  vars:
+      ansible_python_interpreter: /bin/python3
+  roles:
+    - GetvHBAInfoAll

@@ -1,0 +1,9 @@
+---
+- name: VM Tagging
+  hosts: all
+  gather_facts: false
+  vars:
+   vms: ""
+
+  roles:
+    - AddTagtoVM

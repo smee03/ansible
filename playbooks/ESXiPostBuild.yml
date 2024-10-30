@@ -1,0 +1,13 @@
+---
+- name: ESXi Post Build Playbook 1 running on USH PROD Server 1
+  hosts: all
+  serial: 1
+  gather_facts: no
+  ignore_errors: false
+  connection: local
+  vars:
+    ansible_python_interpreter: /bin/python
+  tasks:
+     - name: ESXi Bulk Tasks For Playbok 1
+       include_role:
+           name: ESXiPostBuild

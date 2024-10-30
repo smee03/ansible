@@ -1,0 +1,21 @@
+---
+- name: ESXi Post Build Playbooks running on USH PROD Server 1
+  hosts: all
+  serial: 1
+  gather_facts: no
+  ignore_errors: false
+  connection: local
+  vars:
+    ansible_python_interpreter: /bin/python
+  tasks:
+     - name: ESXi Bulk Tasks For Playbook 1
+       include_role:
+           name: ESXiPostBuild
+
+     - name: ESXi Bulk Tasks For Playbook 2 Networking
+       include_role:
+           name: ESXiPostBuildNetworkBasic
+
+     - name: Migrate vmnic0
+       include_role:
+           name: ESXiPostBuildMigratevmnic

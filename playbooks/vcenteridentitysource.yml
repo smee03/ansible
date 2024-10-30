@@ -1,0 +1,7 @@
+- name: Update vCenter Identity Source
+  hosts: al
+  gather_facts: no
+
+
+  roles: 
+   - vcenteridentitysource

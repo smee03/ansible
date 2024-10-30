@@ -1,0 +1,9 @@
+---
+- name: Join ESXi to TFAYD.COM Domain
+  hosts: localhost
+  gather_facts: no
+  ignore_errors: true
+  vars:
+    ansible_python_interpreter: /bin/python
+  roles:
+    - ESXi-DomainJoin

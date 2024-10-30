@@ -1,0 +1,7 @@
+---
+- name: Gather vHBA data about an ESXi Host
+  hosts: all
+  gather_facts: no
+
+  roles:
+    - IntersightvHBAList

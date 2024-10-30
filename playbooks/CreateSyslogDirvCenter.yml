@@ -1,0 +1,8 @@
+---
+- name: Create syslog directory using vCenter Auth
+  hosts: localhost
+  gather_facts: no
+  vars:
+    ansible_python_interpreter: /bin/python3
+  roles:
+    - CreateSyslogDirvCenter

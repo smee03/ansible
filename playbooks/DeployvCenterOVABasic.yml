@@ -1,0 +1,7 @@
+---
+- name: Deploy an OVA or an OVF for an (almost) complete vCenter build
+  hosts: all
+  gather_facts: no
+
+  roles:
+    - DeployvCenterOVABasic

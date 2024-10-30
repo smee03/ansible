@@ -1,0 +1,7 @@
+---
+- name: vCenter Tagging
+  hosts: all
+  gather_facts: no
+
+  roles:
+    - AddCreateTag

@@ -1,0 +1,9 @@
+---
+- name: NTPD check from usl
+  hosts: localhost
+  gather_facts: no
+  ignore_errors: true
+  vars:
+    ansble_python_interperter: /bin/python3
+  roles:
+    - NTPDcheck

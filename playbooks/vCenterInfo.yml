@@ -1,0 +1,7 @@
+---
+- name: Info About vCenter
+  hosts: all
+  gather_facts: no
+
+  roles:
+    - vCenterInfo

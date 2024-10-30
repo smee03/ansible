@@ -1,0 +1,8 @@
+---
+- name: Create a vCenter Cluster
+  hosts: localhost
+  gather_facts: no
+  ignore_errors: true
+  vars:
+  roles:
+    - CreatevCenterCluster

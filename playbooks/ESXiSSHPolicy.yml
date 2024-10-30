@@ -1,0 +1,9 @@
+---
+- name: Stop-Start SSH Service and SSH Policy - Playbook Server is USH
+  hosts: localhost
+  gather_facts: no
+  ignore_errors: true
+  vars:
+    ansble_python_interperter: /bin/python3
+  roles:
+    - ESXiSSHPolicy

@@ -1,0 +1,8 @@
+---
+- name: Updates All PURE Storage Devices to 128
+  hosts: all
+  gather_facts: no
+  vars:
+    ansible_python_interpreter: /bin/python
+  roles:
+    - SetStorageCoreDevice

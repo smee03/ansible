@@ -1,0 +1,7 @@
+---
+- name: Post Build actions after deploying vCenter VM
+  hosts: all
+  gather_facts: no
+
+  roles:
+    - DeployvCenterOVAPostBuild

@@ -1,0 +1,7 @@
+---
+- name: Info about ESXi
+  hosts: all
+  gather_facts: no
+
+  roles:
+    - ESXiInfo

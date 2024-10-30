@@ -1,0 +1,9 @@
+---
+- name: ESXi Post Build 1 from ecl
+  hosts: all 
+  gather_facts: no
+  ignore_errors: false
+  vars:
+    ansible_python_interpreter: /bin/python
+  roles:
+    - ESXiPostBuild

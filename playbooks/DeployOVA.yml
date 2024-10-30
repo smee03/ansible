@@ -1,0 +1,7 @@
+---
+- name: Deploy an OVA or an OVF in the vCenter Lab
+  hosts: all
+  gather_facts: no
+
+  roles:
+    - DeployOVA

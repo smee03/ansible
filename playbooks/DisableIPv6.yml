@@ -1,0 +1,9 @@
+---
+- name: Disable IPv6 [from USL DEV NODE1]
+  hosts: all
+  gather_facts: no
+  ignore_errors: true
+  vars:
+    ansble_python_interperter: /bin/python3
+  roles:
+    - DisableIPv6
