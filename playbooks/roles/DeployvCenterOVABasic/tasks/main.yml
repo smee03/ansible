@@ -1,0 +1,161 @@
+- name: Deploy a vCenter OVA
+  vmware_deploy_ovf:
+   hostname: "{{ hostname }}"
+   username: "{{ username }}"
+   password: "{{ password }}"
+   datacenter: "{{ vcenter_datacenter }}"
+   validate_certs: no
+   cluster: "{{ vcenter_cluster }}"
+   datastore: "{{ vcenter_datastore }}"
+   name: "{{ vm_name }}"
+   networks:
+    "Network 1": "{{ vm_network_1 }}"
+   wait_for_ip_address: "{{ wait_for_ip }}"
+   power_on: true
+   ova: "{{ ova_path }}"
+   fail_on_spec_warnings: yes
+   inject_ovf_env: yes
+   properties:
+    DeploymentOption.value: "{{ tshirt_size }}"
+    guestinfo.cis.appliance.net.addr.family: "{{ ip_type }}"
+    guestinfo.cis.appliance.net.mode: "static"
+    guestinfo.cis.appliance.net.addr: "{{ vcenter_net_ip_address }}"
+    guestinfo.cis.appliance.net.pnid: "{{ vcenter_hostname }}"
+    guestinfo.cis.appliance.net.prefix: "{{ prefix }}"
+    guestinfo.cis.appliance.net.gateway: "{{ vcenter_gateway }}"
+    guestinfo.cis.appliance.net.dns.servers: "{{ vcenter_dns_servers }}"
+    guestinfo.cis.appliance.root.passwd: "{{ root_password }}"
+    guestinfo.cis.ceip_enabled: "False"
+    guestinfo.cis.vmdir.password: "{{ vcenter_password }}"
+    domain: "{{ domain }}"
+    searchpath: "{{ searchpath }}"
+  delegate_to: localhost
+  register: ova_out
+- debug:
+   var: ova_out
+  #- pause: 
+  #   minutes: "{{ pause_minutes }}"
+
+   #- name: update vCenter properties ssh, autoconfig, domain name and user, ntp
+   # vmware_guest:
+   #  hostname: "{{ hostname }}"
+   # username: "{{ username }}"
+   # password: "{{ password }}"
+   # validate_certs: no
+   # name: "{{ vm_name }}"
+   # state: present
+   # vapp_properties:
+   #   - id: guestinfo.cis.appliance.ssh.enabled
+   #     type: boolean
+   #     value: "True"
+   #     userConfigurable: true
+   #   - id: guestinfo.cis.deployment.autoconfig
+   #     type: boolean
+   #     value: "True"
+   #     userConfigurable: true
+   #   - id: guestinfo.cis.ad.domain-name
+   #     type: string
+   #     value: "{{ domain }}"
+   #     userConfigurable: true
+   #   - id: guestinfo.cis.ad.domain.username
+   #     type: string
+   #     value: "{{ vcenter_username }}"
+   #     userConfigurable: true
+   #   - id: guestinfo.cis.appliance.ntp.servers
+   #     type: string
+   #     value: "nbcutime1.inbcu.com, nbcutime2.inbcu.com, nbcutime3.inbcu.com, nbcutime4.inbcu.com"
+   #     userConfigurable: true
+   # delegate_to: localhost
+   #register: vapp_out
+   #- debug:
+   # var: vapp_out
+
+   #- name: Power on vCenter VM
+   #vmware_guest:
+   # hostname: "{{ hostname }}"
+   # username: "{{ username }}"
+   # password: "{{ password }}"
+   # name: "{{ vm_name }}"
+   # validate_certs: no
+   # state: poweredon
+   # hardware:
+   #  version: latest
+   # delegate_to: localhost
+   # register: poweron
+   #- debug:
+   #  var: poweron
+
+   #- pause:
+   # minutes: "{{ pause_minutes }}"
+
+          #       - name: Add another network to the vCenter VM
+          #vmware_guest_network:
+          #  hostname: "{{ hostname }}"
+          #  username: "{{ username }}"
+          #  password: "{{ password }}"
+          #  validate_certs: no
+          #  name: "{{ vm_name }}"
+          #  gather_network_info: false
+          #  networks:
+          #  - dvswitch_name: "{{ dvswitch_name_1 }}"
+          #    name: "{{ vm_network_1 }}"
+          #    device_type: vmxnet3
+          #    connected: true
+          #    start_connected: true
+          #    state: new
+          # register: network_info
+          #delegate_to: localhost
+
+          #- name: Upgrade the VM hardware version
+          #vmware_rest.vcenter_vm_hardware:
+          #hostname: "{{ vcenter_hostname }}"
+          #username: "{{ vcenter_username }}"
+          #password: "{{ vcenter_password }}"
+          #validate_certs: no
+          #upgrade_policy: AFTER_CLEAN_SHUTDOWN
+          #upgrade_version: VMX_15
+          #vm: "{{ ova_out.id }}"
+          #register: vm_hw
+          #delegate_to: localhost
+
+   #- name: Update Mail relay, SNMP, Timeout settings to the new vCenter VM
+   #vmware_vcenter_settings:
+   #hostname: "{{ vcenter_hostname }}"
+   # username: "{{ vcenter_username }}"
+   #password: "{{ vcenter_password }}"
+   #validate_certs: no
+   #mail:
+   #  server: mailrelay.inbcu.com
+   #  sender: "{{ mail_sender }}"
+   #snmp_receivers:
+   #  snmp_receiver_1_url: localhost
+   #  snmp_receiver_1_enabled: true
+   #  snmp_receiver_1_port: 162
+   #  snmp_receiver_1_community: public
+   #timeout_settings:
+   #  normal_operations: 30
+   #long_operations: 120
+   #logging_options: info
+   #register: mail_relay
+   #delegate_to: localhost
+   #- debug:
+   # var: mail_relay
+
+# - name: Add vCenter license
+#vmware_vcenter_settings:
+#hostname: '{{ vcenter_hostname }}'
+#username: '{{ vcenter_username }}'
+#password: '{{ vcenter_password }}'
+#license: '{{ vcenter_license }}'
+#state: present
+#register: vcenter_license
+
+   #- name: Upgrade the VM hardware version
+   #vcenter_vm_hardware:
+   #upgrade_policy: AFTER_CLEAN_SHUTDOWN
+   #upgrade_version: VMX_15
+   #vm: "{{ lookup('vmware.vmware_rest.vm_moid','/{{ vcenter_datacenter }}/vm/{{ vm_name }}') }}"
+   #register: vm_hw
+   #delegate_to: localhost
+
+

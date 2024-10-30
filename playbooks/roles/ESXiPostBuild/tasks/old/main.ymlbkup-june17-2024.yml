@@ -1,0 +1,229 @@
+- name: Adding ESXi license and assigning to ESXi Host
+  vcenter_license:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    esxi_hostname: "{{ item }}"
+    license: "{{ esxi_license }}"
+    state: present
+    validate_certs: false
+  delegate_to: localhost
+  loop: "{{ esxi_hostname | regex_replace('\n', ',') | split(',') }}"
+  register: esxilicense
+- debug:
+    var: esxilicense
+
+- name: Start ntpd services for ESXi
+  vmware_host_service_manager:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    esxi_hostname: "{{ item }}"
+    validate_certs: false
+    service_name: ntpd
+    state: present
+  register: ntpdservices
+  delegate_to: localhost
+  loop: "{{ esxi_hostname | regex_replace('\n', ',') | split(',') }}"
+- debug:
+   var: ntpdservices
+
+- name: Configure NTP servers for an ESXi Host
+  vmware_host_ntp:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    esxi_hostname: "{{ item }}"
+    validate_certs: false
+    state: present
+    ntp_servers:
+        - nbcutime1.inbcu.com
+        - nbcutime2.inbcu.com
+        - nbcutime3.inbcu.com
+        - nbcutime4.inbcu.com
+  delegate_to: localhost
+  register: ntpstatus
+  loop: "{{ esxi_hostname | regex_replace('\n', ',') | split(',') }}"
+- debug:
+    var: ntpstatus
+
+- name: Wait for NTPD services
+  pause:
+   minutes: 1
+
+- name: Start ntpd with ESXi host start
+  vmware_host_service_manager:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    esxi_hostname: "{{ item }}"
+    service_name: ntpd
+    service_policy: "on"
+    state: present
+    validate_certs: false
+  register: ntpdpolicy
+  loop: "{{ esxi_hostname | regex_replace('\n', ',') | split(',') }}"
+  delegate_to: localhost
+- debug:
+   var: ntpdpolicy
+
+- name: Start sshd services for ESXi
+  vmware_host_service_manager:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    esxi_hostname: "{{ item }}"
+    validate_certs: false
+    service_name: TSM-SSH
+    state: present
+  register: sshdservices
+  loop: "{{ esxi_hostname | regex_replace('\n', ',') | split(',') }}"
+  delegate_to: localhost
+- debug:
+   var: sshdservices
+
+- name: Start SSH with ESXi host start
+  vmware_host_service_manager:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    esxi_hostname: "{{ item }}"
+    validate_certs: false
+    service_name: TSM-SSH
+    service_policy: "off"
+    state: present
+  register: sshpolicy
+  loop: "{{ esxi_hostname | regex_replace('\n', ',') | split(',') }}"
+  delegate_to: localhost
+- debug:
+   var: sshpolicy
+
+- name: Configure TCP/IP Stack Default, provisioning, vmotion
+  community.vmware.vmware_host_tcpip_stacks:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    validate_certs: false
+    esxi_hostname: "{{ item }}"
+    default:
+      hostname: '"{{ esxi_hostname.split(".")[0] | lower }}"'
+      domain: tfayd.com
+      preferred_dns: 100.123.1.1
+      alternate_dns: 100.123.1.2
+      search_domains:
+        - tfayd.com
+      congestion_algorithm: cubic
+      max_num_connections: 11000
+    provisioning:
+      congestion_algorithm: newreno
+      max_num_connections: 11000
+    vmotion:
+      congestion_algorithm: newreno
+      max_num_connections: 11000
+  register: dnsupdate
+  loop: "{{ esxi_hostname | regex_replace('\n', ',') | split(',') }}"
+  delegate_to: localhost
+- debug:
+   var: dnsupdate
+
+- name: Wait for DNS services to update
+  pause:
+   minutes: 1
+
+## CREATE SYSLOG DIR ##
+
+- name: Create Syslog Directory
+  shell: "mkdir -p /vmfs/volumes/localstorage_'{{ esxi_hostname.split(\".\")[0] | lower }}'/syslog"
+  register: syslogdir
+- debug:
+    var: syslogdir
+# failed_when: datastore != "localstorage_'{{ esxi_hostname.split(\".\")[0] | lower }}'"
+#
+
+
+## UPDATE ADVANCED CONFIG OPTIONS ##
+
+- name: Updating log level, Syslog, Welcome Message, esxAdminsGroup for ESXi
+  vmware_host_config_manager:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    esxi_hostname: "{{ item }}"
+    validate_certs: false
+    options:
+        "Config.HostAgent.log.level": "info"
+        "Annotations.WelcomeMessage": "This is a private system. Unauthorized access is prohibited, All activity is logged and forwarded to Splunk. Enjoy your session."
+        "Syslog.global.logHost": "tcp://slaac-corp-hf-001.inbcu.com:1514"
+        "syslog.global.logdir": "localstorage_'{{ esxi_hostname.split(\".\")[0] | lower }}'/syslog"
+        "Config.HostAgent.plugins.hostsvc.esxAdminsGroup": "adg-virtualcenter_admins"
+        "VMFS3.GBLAllowMW": "1"
+        "LSOM.lsomEnableRebuildOnLSE": "2"
+        "VSAN.TrimDisksBeforeUseGranularity": "1"
+        "VMFS3.LFBCSlabSizeMaxMB": "64"
+        "UserVars.SuppressShellWarning": "1"
+  register: options
+  loop: "{{ esxi_hostname | regex_replace('\n', ',') | split(',') }}"
+  delegate_to: localhost
+- debug:
+    var: options
+
+- name: Rescan HBA's for a given ESXi host and refresh storage system objects
+  vmware_host_scanhba:
+      hostname: "{{ vcenter_hostname }}"
+      username: "{{ vcenter_username }}"
+      password: "{{ vcenter_password }}"
+      esxi_hostname: "{{ item }}"
+      refresh_storage: true
+      validate_certs: false
+  delegate_to: localhost
+  register: hbascan
+  loop: "{{ esxi_hostname | regex_replace('\n', ',') | split(',') }}"
+- debug:
+   var: hbascan
+
+- name: Set the Power Management Policy of a host system to high-performance
+  vmware_host_powermgmt_policy:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    esxi_hostname: "{{ item }}"
+    policy: high-performance
+    validate_certs: false
+  delegate_to: localhost
+  register: powermgmt
+  loop: "{{ esxi_hostname | regex_replace('\n', ',') | split(',') }}"
+- debug:
+   var: powermgmt
+
+- name: Join ESXi to tfayd domain
+  vmware_host_active_directory:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    esxi_hostname: "{{ item }}"
+    ad_domain: TFAYD.COM
+    ad_user: "{{ vcenter_username }}"
+    ad_password: "{{ vcenter_password }}"
+    ad_state: present
+    validate_certs: false
+  register: adjoin
+  loop: "{{ esxi_hostname | regex_replace('\n', ',') | split(',') }}"
+  delegate_to: localhost
+- debug:
+    var: adjoin
+
+## SSH COMMANDS ##
+
+## IPv6 ##
+
+- name: Disable ipv6
+  shell: "esxcli network ip set --ipv6-enabled=false"
+  register: ipv6
+- debug:
+   var: ipv6.stdout_lines
+
+- name: Get ipv6 info and confirm
+  shell: "esxcli network ip interface ipv6 get"
+  register: ipv6_confirm
+- debug:
+   var: ipv6_confirm.stdout_lines

@@ -1,0 +1,8 @@
+- name: vCenter post build identity source
+  win_powershell: 
+   script: |
+    ./updateIdentitySource.ps1
+   arguments:
+   - -ExecutionPolicy
+   - ByPass
+  register: identity_sources

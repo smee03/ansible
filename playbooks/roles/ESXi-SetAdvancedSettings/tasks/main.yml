@@ -1,0 +1,32 @@
+- name: Updating Advanced Settings
+  vmware_host_config_manager:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    esxi_hostname: "{{ item }}"
+    validate_certs: false
+    options:
+      "Config.HostAgent.log.level": "info"
+      "Annotations.WelcomeMessage": "/etc/issue"
+      "Syslog.global.logHost": "tcp://slaac-corp-hf-001.inbcu.com:1514"
+      "Syslog.global.logDir": "[localstorage_{{ item.split(\".\")[0] | lower }}] syslog"
+      "Config.HostAgent.plugins.hostsvc.esxAdminsGroup": "adg-virtualcenter_admins"
+      "VMFS3.GBLAllowMW": "1"
+      "LSOM.lsomEnableRebuildOnLSE": "2"
+      "VSAN.TrimDisksBeforeUseGranularity": "1"
+      "VMFS3.LFBCSlabSizeMaxMB": "64"
+      "UserVars.SuppressShellWarning": "1"
+      "Security.SshSessionLimit": "50"
+      "Security.AccountUnlockTime": "900"
+      "Security.PasswordQualityControl": "retry=5 min=disabled,disabled,disabled,disabled,15 similar=deny"
+      "Security.AccountLockFailures": "5"
+      "Security.PasswordMaxDays": "90"
+      "Security.PasswordHistory": "5"
+      "DCUI.Access": root
+      "UserVars.DcuiTimeOut": "600"
+      "Net.DVFilterBindIpAddress": ""
+      "Config.HostAgent.plugins.solo.enableMob": False
+  loop: "{{ esxi_hostname | regex_replace('\n', ',') | split(',') }}"
+  register: options
+  delegate_to: localhost
+

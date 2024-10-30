@@ -1,0 +1,29 @@
+- name: Stop or Start SSHd services for ESXi
+  vmware_host_service_manager:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    esxi_hostname: "{{ item }}"
+    validate_certs: false
+    service_name: TSM-SSH
+    state: "{{ ssh_state }}"
+  register: sshdservices
+  loop: "{{ esxi_hostname | regex_replace('\n', ',') | split(',') }}"
+  delegate_to: localhost
+- debug:
+    var: sshdservices
+
+- name: SSH stop or start with ESXi host starts
+  vmware_host_service_manager:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    esxi_hostname: "{{ item }}"
+    validate_certs: false
+    service_name: TSM-SSH
+    service_policy: "{{ ssh_policy }}"
+  register: sshpolicy
+  loop: "{{ esxi_hostname | regex_replace('\n', ',') | split(',') }}"
+  delegate_to: localhost
+- debug:
+    var: sshpolicy

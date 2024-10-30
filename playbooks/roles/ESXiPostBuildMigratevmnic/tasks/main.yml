@@ -1,0 +1,31 @@
+- name: Get Port ID for Uplink0
+  shell: esxcfg-vswitch -l | awk 'NR==5{print $1; exit}'
+  register: getportID0
+- set_fact:
+        portID0: "{{ getportID0.stdout | replace(\"'\",'') }}"
+
+- name: add vmnic0 to uplink0
+  shell: esxcfg-vswitch -P vmnic0 -V '{{ portID0 }}' "{{ dvswitch_name }}"
+  register: addvmnic
+
+- name: restart services to resfreshing networking and vmnic0
+  shell: /bin/services.sh restart
+  register: services
+
+- name: Pause for restart
+  pause:
+   seconds: 60
+
+###### vv -- Disable SSH vv ######
+- name: Stop sshd services for ESXi after all tasks are completed
+  vmware_host_service_manager:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    esxi_hostname: "{{ esxi_hostname }}"
+    validate_certs: false
+    service_name: TSM-SSH
+    state: stop
+  register: sshdstop
+  delegate_to: localhost
+###### ^^ -- Disable SSH ^^ ######

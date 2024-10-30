@@ -1,0 +1,40 @@
+  - name: Get ESXi License Info via PS
+    shell: |
+            pwsh /etc/ansible/roles/Check-ESXiPostBuild/files/esxilicense.ps1 -esxi_hostname "{{ hostvars[inventory_hostname]['esxi_hostname'] }}"
+    register: esxi_license_info
+    delegate_to: localhost
+    check_mode: no
+  - debug:
+      var: esxi_license_info
+
+  - name: Extract License Key from PowerShell output
+    shell: 'echo "{{ esxi_license_info.stdout }}" | grep "License Key:" | awk -F'': '' ''{print $2}'''
+    register: license_key
+    delegate_to: localhost
+    check_mode: no
+
+  - name: Extract Product from PowerShell output
+    shell: 'echo "{{ esxi_license_info.stdout }}" | grep "Product:" | awk -F'': '' ''{print $2}'''
+    register: product_name
+    delegate_to: localhost
+    check_mode: no
+
+  - name: Ensure license key and product name are set
+    fail:
+      msg: "License key or product name not found in script output."
+    when: license_key.stdout == "" or product_name.stdout == ""
+    check_mode: no
+
+  - name: Set combined ESXi license info fact
+    set_fact:
+      esxi_license_info_dict:
+        License: "{{ license_key.stdout.strip() }}"
+        Standard: "{{ 'True' if product_name.stdout.strip() != 'Evaluation License' else 'False' }}"
+        Version: "{{ product_name.stdout.strip() }}"
+    check_mode: no
+
+  - debug:
+      msg:
+        - "License: {{ esxi_license_info_dict.License }}"
+        - "Standard: {{ esxi_license_info_dict.Standard }}"
+        - "Version: {{ esxi_license_info_dict.Version }}"

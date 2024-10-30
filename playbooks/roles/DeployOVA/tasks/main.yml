@@ -1,0 +1,20 @@
+   - name: Deploy an OVF or OVA
+     vmware_deploy_ovf:
+      hostname: "{{ hostname }}"
+      username: "{{ username }}"
+      password: "{{ password }}"
+      datacenter: "{{ vcenter_datacenter }}"
+      validate_certs: no
+      cluster: "{{ vcenter_cluster }}"
+      datastore: "{{ vcenter_datastore }}"
+      name: "{{ vm_name }}"
+      networks:
+       "Network 1": "{{ vm_network_1 }}"
+      wait_for_ip_address: "{{ wait_for_ip }}"
+      power_on: true
+      ova: "{{ ova_path }}"
+      fail_on_spec_warnings: yes
+     delegate_to: localhost
+
+   - pause:
+      minutes: "{{ pause_minutes }}"

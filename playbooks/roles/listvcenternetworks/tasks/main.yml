@@ -1,0 +1,3 @@
+- name: Get a list of Distributed Networks
+  command: pwsh -ExecutionPolicy ByPass -File ./files/listnetworks.ps1
+  register: networklists

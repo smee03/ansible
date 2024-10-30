@@ -1,0 +1,14 @@
+- name: Create computer objects
+  microsoft.ad.computer:
+    domain_username: "{{ service_account }}"
+    domain_password: "{{ service_account_password }}"
+    domain_server: tfayd.com
+    name: "{{ item }}"
+    description: '{{ item }}.tfayd.com'
+    sam_account_name: "{{ item }}"
+    display_name: "{{ item }}"
+    path: "{{ ou_path }}"
+    state: present
+  loop: "{{ object_name | regex_replace('\n', ',') | split(',') }}"
+  when: object_name is defined and object_name != ''
+  register: computer_object

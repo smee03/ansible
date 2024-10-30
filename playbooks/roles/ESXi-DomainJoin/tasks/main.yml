@@ -1,0 +1,63 @@
+- name: ESXi to leave tfayd domain
+  vmware_host_active_directory:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    esxi_hostname: "{{ item }}"
+    ad_domain: TFAYD.COM
+    ad_state: absent
+    validate_certs: false
+  register: leavedomain
+  loop: "{{ esxi_hostname | regex_replace('\n', ',') | split(',') }}"
+  when: "leave_domain == 'yes'"
+  delegate_to: localhost
+
+- name: Configure Default TCP/IP Stack
+  community.vmware.vmware_host_tcpip_stacks:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    validate_certs: false
+    esxi_hostname: "{{ item }}"
+    default:
+      hostname: "{{ item.split('.')[0] | lower }}"
+      domain: tfayd.com
+      preferred_dns: 100.123.1.1
+      alternate_dns: 100.123.1.2
+      search_domains:
+        - tfayd.com
+      congestion_algorithm: cubic
+      max_num_connections: 11000
+  register: tcpipupdate
+  loop: "{{ esxi_hostname | regex_replace('\n', ',') | split(',') }}"
+  delegate_to: localhost
+- debug:
+   var: tcpipupdate
+
+- name: Join ESXi to tfayd domain
+  vmware_host_active_directory:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    esxi_hostname: "{{ item }}"
+    ad_domain: TFAYD.COM
+    ad_user: "{{ vcenter_username }}"
+    ad_password: "{{ vcenter_password }}"
+    ad_state: present
+    validate_certs: false
+  register: adjoin
+  loop: "{{ esxi_hostname | regex_replace('\n', ',') | split(',') }}"
+  delegate_to: localhost
+
+- name: Add ESX Admins Group
+  vmware_host_config_manager:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    esxi_hostname: "{{ item }}"
+    validate_certs: false
+    options:
+      "Config.HostAgent.plugins.hostsvc.esxAdminsGroup": "adg-virtualcenter_admins"
+  loop: "{{ esxi_hostname | regex_replace('\n', ',') | split(',') }}"
+  register: options
+  delegate_to: localhost

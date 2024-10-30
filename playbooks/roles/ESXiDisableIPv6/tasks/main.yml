@@ -1,0 +1,13 @@
+- name: Set IPv6
+  vmware_host_ipv6:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    esxi_hostname: "{{ item }}"
+    validate_certs: no
+    state: "{{ state }}"
+  loop: "{{ esxi_hostname | regex_replace('\n', ',') | split(',') }}"
+  register: ipv6state
+  delegate_to: localhost
+- debug:
+    var: ipv6state

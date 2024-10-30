@@ -1,0 +1,49 @@
+#- name: Start ntpd services for ESXi
+#  vmware_host_service_manager:
+#    hostname: "{{ vcenter_hostname }}"
+#    username: "{{ vcenter_username }}"
+#    password: "{{ vcenter_password }}"
+#    esxi_hostname: "{{ item }}"
+#    validate_certs: false
+#    service_name: ntpd
+#    state: present
+#  register: ntpdservices
+#  loop: "{{ esxi_hostname | regex_replace('\n', ',') | split(',') }}"
+
+#- name: Debug ntpdservices variable
+#  debug:
+#    var: ntpdservices
+
+#- name: Render output to file using Jinja2 template
+#  template:
+#    src: "/etc/ansible/roles/NTPDcheck/templates/output_template.j2"
+#    dest: "/etc/ansible/roles/NTPDcheck/templates/output_file.txt"
+#  register: templateoutput
+#  vars:
+#    ntpdservices: "{{ ntpdservices }}"
+
+- name: Create a file
+  file:
+    path: /etc/ansible/roles/NTPDcheck/templates/template.j2
+    state: touch
+    mode: '0755'
+    owner: jenkins
+    group: jenkins
+  register: fileoutput
+- debug:
+    var: fileoutput
+
+- name: Create a directory if it does not exist
+  ansible.builtin.file:
+    path: /etc/ansible/roles/NTPDcheck/testing
+    state: directory
+    mode: '0755'
+  register: directory
+- debug:
+    var: directory
+
+- name: create file
+  shell: touch /etc/ansible/roles/NTPDcheck/test
+  register: shell
+- debug:
+    var: shell

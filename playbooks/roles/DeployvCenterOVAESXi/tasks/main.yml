@@ -1,0 +1,90 @@
+       - name: Deploy a vCenter OVA
+         community.vmware.vmware_deploy_ovf:
+          hostname: "{{ esxi_hostname }}"
+          username: "{{ esxi_username }}"
+          password: "{{ esxi_password }}"
+          validate_certs: no
+          datastore: "{{ vcenter_datastore }}"
+          name: "{{ vm_name }}"
+          networks:
+           "Network 1": "{{ vm_network_1 }}"
+          wait_for_ip_address: yes
+          power_on: true
+          ova: "{{ ova_path }}"
+          fail_on_spec_warnings: yes
+          inject_ovf_env: yes
+          properties:
+            DeploymentOption.value: "{{ tshirt_size }}"  # vCenter t-shirt size: tiny,small,medium,large, or infrastructure
+            guestinfo.cis.appliance.net.addr.family: "ipv4" # ipv4 or ipv6
+            guestinfo.cis.appliance.net.mode: "static" # static or dhcp
+            guestinfo.cis.appliance.net.addr: "{{ vcenter_net_ip_address }}"
+            guestinfo.cis.appliance.net.pnid: "{{ vcenter_hostname }}.{{ domain }}" # FQDN of vcenter server
+            guestinfo.cis.appliance.net.prefix: 24 # netmask length, CIDR notation, i.e. '24'
+            guestinfo.cis.appliance.net.gateway: "{{ vcenter_gateway }}"
+            guestinfo.cis.appliance.net.dns.servers: "{{ vcenter_dns_servers }}" # Comma separated list of IP addresses of DNS servers.
+            guestinfo.cis.appliance.root.passwd: "{{ vcenter_password }}"
+            guestinfo.cis.ceip_enabled: "False"
+            guestinfo.cis.deployment.autoconfig: "True" # Auto-configure after deployment
+            guestinfo.cis.vmdir.domain-name: "{{ domain }}"
+            guestinfo.cis.vmdir.username: "{{ vcenter_username }}"
+            guestinfo.cis.vmdir.password: "{{ vcenter_password }}" # SSO Password for administrator@vsphere.local
+            guestinfo.cis.appliance.ntp.servers: "nbuctime1.inbcu.com, nbcutime2.inbcu.com, nbcutime3.inbcu.com, nbcutime4.inbcu.com"
+            guestinfo.cis.appliance.ssh.enabled: "True"
+            domain: "{{ domain }}"
+            searchpath: "tfayd.com"
+         delegate_to: localhost
+         register: ova_out
+
+       - pause:
+          minutes: "{{ pause_minutes }}"
+
+       - name: Add another network to the vCenter VM
+         community.vmware.vmware_guest_network:
+            hostname: "{{ vcenter_hostname }}"
+            username: "{{ vcenter_username }}"
+            password: "{{ vcenter_password }}"
+            validate_certs: no
+            name: "{{ vm_name }}"
+            gather_network_info: false
+            networks:
+            - dvswitch_name: "{{ dvswitch_name_1 }}"
+              name: "{{ vm_network_1 }}"
+              device_type: vmxnet3
+              connected: true
+              start_connected: true
+              state: new
+         register: network_info
+         delegate_to: localhost
+
+       - name: Upgrade the VM hardware version
+         vmware_rest.vcenter_vm_hardware:
+          hostname: "{{ vcenter_hostname }}"
+          username: "{{ vcenter_username }}"
+          password: "{{ vcenter_password }}"
+          validate_certs: no
+          upgrade_policy: AFTER_CLEAN_SHUTDOWN
+          upgrade_version: VMX_15
+          vm: "{{ ova_out.id }}"
+         register: vm_hw
+         delegate_to: localhost
+
+       - name: Update Mail relay
+         vmware_vcenter_settings:
+          hostname: '{{ vcenter_hostname }}'
+          username: '{{ vcenter_username }}'
+          password: '{{ vcenter_password }}'
+          mail:
+           server: mailrelay.inbcu.com
+           sender: '{{ mail_sender }}'
+          register: mail_relay
+          delegate_to: localhost
+
+          #       - name: Add vCenter license
+          #vmware_vcenter_settings:
+          #hostname: '{{ vcenter_hostname }}'
+          #username: '{{ vcenter_username }}'
+          #password: '{{ vcenter_password }}'
+          #license: '{{ vcenter_license }}'
+          #state: present
+          #register: vcenter_license
+          #delegate_to: localhost

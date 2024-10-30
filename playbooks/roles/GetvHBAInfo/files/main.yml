@@ -1,0 +1,35 @@
+#- name: Gather info about vmhbas of all ESXi Host in the given Cluster
+#  vmware_host_vmhba_info:
+#    hostname: '{{ vcenter_hostname }}'
+#    username: '{{ vcenter_username }}'
+#    password: '{{ vcenter_password }}'
+#    cluster_name: '{{ cluster_name }}'
+#  delegate_to: localhost
+#  register: cluster_host_vmhbas
+
+#- name: Gather info about vmhbas of an ESXi Host
+  #  vmware_host_vmhba_info:
+          # hostname: '{{ vcenter_hostname }}'
+    #  username: '{{ vcenter_username }}'
+    #  password: '{{ vcenter_password }}'
+    #   esxi_hostname: '{{ esxi_hostname }}'
+    #   validate_certs: false
+    #  delegate_to: localhost
+  #  register: host_vmhba
+
+  #- debug:
+        #    var: host_vmhba.vmhba_details
+        #
+- name: Get PCI vmHBA MAC List
+  shell: esxcli storage core adapter list | grep -i fc | awk -F ":" '{print $2}' | sed -e 's/\(..\)/\1:/g; s/.$//' -e 's/^[^0-9a-fA-F]*\([0-9a-fA-F:]*\).*$/\1/' -e 's/:$//'
+  register: vmhbalist
+- debug:
+    msg:
+     - "The output will be starting at the top from vmhba2 down to vmhba5"
+     - "{{ vmhbalist.stdout_lines }}"
+
+- name: export MAC list
+  copy:
+    content: "{{ vmhbalist.stdout_lines }}"
+    dest: "/var/lib/jenkins/files/vmhbamaclist.txt"
+  delegate_to: localhost

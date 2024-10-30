@@ -1,0 +1,10 @@
+- name: Provide information about vCenter
+  vmware_about_info:
+    hostname: '{{ vcenter_hostname }}'
+    username: '{{ vcenter_username }}'
+    password: '{{ vcenter_password }}'
+    validate_certs: false
+  delegate_to: localhost
+  register: vcenter_about_info
+- debug:
+   var: vcenter_about_info

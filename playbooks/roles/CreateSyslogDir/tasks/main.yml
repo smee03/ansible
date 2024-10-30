@@ -1,0 +1,13 @@
+- name: Does syslog folder already exist?
+  stat:
+    path: "/vmfs/volumes/localstorage_{{ esxi_hostname.split(\".\")[0] }}"
+  register: syslogfolder
+- debug:
+    var: syslogfolder.stat.exists
+
+- name: Create Syslog Directory
+  shell: "mkdir -p /vmfs/volumes/localstorage_'{{ esxi_hostname.split(\".\")[0] | lower }}'/syslog"
+  register: syslogdir
+  failed_when: not syslogfolder.stat.exists
+- debug:
+    var: syslogdir

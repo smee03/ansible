@@ -1,0 +1,134 @@
+- name: Start ntpd with ESXi host
+  vmware_host_service_manager:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    esxi_hostname: "{{ item }}"
+    service_name: ntpd
+    service_policy: "on"
+    state: present
+    validate_certs: false
+  register: ntpdpolicy
+  loop: "{{ esxi_hostname | regex_replace('\n', ',') | split(',') }}"
+  delegate_to: localhost
+
+- name: Start ntpd services for ESXi
+  vmware_host_service_manager:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    esxi_hostname: "{{ item }}"
+    service_name: ntpd
+    state: present
+    validate_certs: false
+  register: ntpdservices
+  delegate_to: localhost
+  loop: "{{ esxi_hostname | regex_replace('\n', ',') | split(',') }}"
+
+- name: Configure NTP servers for an ESXi Host
+  vmware_host_ntp:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    esxi_hostname: "{{ item }}"
+    validate_certs: false
+    state: present
+    ntp_servers:
+        - nbcutime1.inbcu.com
+        - nbcutime2.inbcu.com
+        - nbcutime3.inbcu.com
+        - nbcutime4.inbcu.com
+        - nbcutime5.inbcu.com
+  delegate_to: localhost
+  register: ntpstatus
+  loop: "{{ esxi_hostname | regex_replace('\n', ',') | split(',') }}"
+
+- name: SSH doesn't start with ESXi host
+  vmware_host_service_manager:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    esxi_hostname: "{{ item }}"
+    validate_certs: false
+    service_name: TSM-SSH
+    service_policy: off
+    state: stop
+  register: sshpolicy
+  loop: "{{ esxi_hostname | regex_replace('\n', ',') | split(',') }}"
+  delegate_to: localhost
+
+- name: Stop sshd services for ESXi
+  vmware_host_service_manager:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    esxi_hostname: "{{ item }}"
+    validate_certs: false
+    service_name:  TSM-SSH
+    state: stop
+  register: sshdstop
+  loop: "{{ esxi_hostname | regex_replace('\n', ',') | split(',') }}"
+  delegate_to: localhost
+
+- name: Disable ESXi Shell and manually start with host
+  vmware_host_service_manager:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    esxi_hostname: "{{ item }}"
+    validate_certs: false
+    service_name: TSM
+    service_policy: off
+    state: stop
+  register: sshdstop
+  loop: "{{ esxi_hostname | regex_replace('\n', ',') | split(',') }}"
+  delegate_to: localhost
+
+- name: Updating Advanced Settings
+  vmware_host_config_manager:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    esxi_hostname: "{{ item }}"
+    validate_certs: false
+    options:
+      "Syslog.global.logHost": "tcp://slaac-corp-hf-001.inbcu.com:1514"
+      "Security.AccountUnlockTime": "900"
+      "Security.PasswordQualityControl": "retry=5 min=disabled,disabled,disabled,disabled,15 similar=deny"
+      "Security.AccountLockFailures": "5"
+      "Security.PasswordHistory": "5"
+      "DCUI.Access": root
+      "UserVars.DcuiTimeOut": "600"
+      "Net.DVFilterBindIpAddress": ""
+      "Config.HostAgent.plugins.solo.enableMob": False
+  loop: "{{ esxi_hostname | regex_replace('\n', ',') | split(',') }}"
+  register: options
+  delegate_to: localhost
+
+- name: Updating Advanced Settings - syslog folder separately - includes Cyber Sec benchmarks 2.3 2.6 3.2 3.3 4.2 - 4.5, 5.1, 5.10
+  vmware_host_config_manager:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    esxi_hostname: "{{ item }}"
+    validate_certs: false
+    options:
+      "Syslog.global.logDir": "[localstorage_{{ item.split(\".\")[0] | lower }}] syslog"
+  loop: "{{ esxi_hostname | regex_replace('\n', ',') | split(',') }}"
+  register: syslogset
+  delegate_to: localhost
+
+- name: ESXi tfayd domain services
+  vmware_host_active_directory:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    esxi_hostname: "{{ item }}"
+    ad_domain: TFAYD.COM
+    ad_user: "{{ vcenter_username }}"
+    ad_password: "{{ vcenter_password }}"
+    ad_state: present
+    validate_certs: false
+  register: adjoin
+  loop: "{{ esxi_hostname | regex_replace('\n', ',') | split(',') }}"
+  delegate_to: localhost

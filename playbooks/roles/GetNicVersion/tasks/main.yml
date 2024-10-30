@@ -1,0 +1,11 @@
+- name: Get "{{ nenics }}" version
+  shell: vmkload_mod -s "{{ nenics }}" | awk 'NR==3{print $2; exit}'
+  register: nic1
+- debug:
+    msg: "version of '{{ nenics }}' is {{ nic1.stdout_lines }}"
+
+- name: Get "{{ nfnics }}" version
+  shell: vmkload_mod -s "{{ nfnics }}" | awk 'NR==3{print $2; exit}'
+  register: nic2
+- debug:
+    msg: "version of '{{ nfnics }}' is  {{ nic2.stdout_lines }}"

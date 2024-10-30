@@ -1,0 +1,34 @@
+- name: vCenter log level, Syslog, Welcome Message, esxAdminsGroup for all ESXi
+  vmware_host_config_manager:
+    hostname: '{{ vcenter_hostname }}'
+    username: '{{ vcenter_username }}'
+    password: '{{ vcenter_password }}'
+    cluster_name: '{{ vcenter_cluster }}'
+    options:
+        'Config.HostAgent.log.level': 'info'
+        'Annotations.WelcomeMessage': 'put in the welcome message here'
+        'Syslog.global.logHost': 'tcp://slaac-corp-hf-001.inbcu.com:1514'
+        'Config.HostAgent.plugins.hostsvc.esxAdminsGroup': 'adg-virtualcenter_admins'
+  delegate_to: localhost
+
+- name: Start ntpd services for ESXi
+  vmware_host_service_manager:
+    hostname: '{{ vcenter_hostname }}'
+    username: '{{ vcenter_username }}'
+    password: '{{ vcenter_password }}'
+    cluster_name: '{{ vcenter_cluster }}'
+    service_name: ntpd
+    state: present
+  register: ntpd-services
+  delegate_to: localhost
+
+- name: Start sshd services for ESXi
+  vmware_host_service_manager:
+    hostname: '{{ vcenter_hostname }}'
+    username: '{{ vcenter_username }}'
+    password: '{{ vcenter_password }}'
+    cluster_name: '{{ vcenter_cluster }}'
+    service_name: sshd
+    state: present
+  register: sshd-services
+  delegate_to: localhost

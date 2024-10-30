@@ -1,0 +1,20 @@
+- name: Create temp directory for files
+  ansible.windows.win_tempfile:
+    state: directory
+    path: C:\storagescript
+
+- name: Copy powershell scrpt
+  ansible.windows.win_copy:
+    src: files/RenameLocalStorage.ps1
+    dest: C:\storagescript
+
+- name: Run storage script
+  win_command: powershell.exe -ExecutionPolicy ByPass -File C:\storagescript\RenameLocalStorage.ps1
+  register: storagescript_output
+- debug:
+   var: storagescript_output
+
+- name: Remove Temp folder and files
+  win_file:
+    path: C:\storagescript
+    state: absent

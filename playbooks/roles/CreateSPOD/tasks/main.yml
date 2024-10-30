@@ -1,0 +1,15 @@
+- name: Create datastore cluster and enable SDRS
+  vmware_datastore_cluster:
+    hostname: '{{ vcenter_hostname }}'
+    username: '{{ vcenter_username }}'
+    password: '{{ vcenter_password }}'
+    datacenter_name: '{{ datacenter_name }}'
+    datastore_cluster_name: '{{ datastore_cluster_name }}'
+    enable_sdrs: "{{ enable_sdrs }}"
+    automation_level: "{{ automation_level }}"
+    enable_io_loadbalance: "{{ enable_io_lb }}"
+    keep_vmdks_together: "{{ keep_vmdks_together }}"
+    loadbalace_interval: "{{ lb_interval }}"
+    validate_certs: false
+    state: present
+  delegate_to: localhost

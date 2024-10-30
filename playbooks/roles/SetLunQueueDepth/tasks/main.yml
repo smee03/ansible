@@ -1,0 +1,17 @@
+- name: Put the host into Maintenance Mode?
+  shell: esxcli system maintenanceMode set --enable true
+  when: "setmaintmode == 'yes'"
+
+- name: Set Lun Queue Depth nfnics
+  shell: 'esxcli system module parameters set -m "{{ nfnics }}" -p lun_queue_depth_per_path=128'
+  register: set_depth
+
+- name: Confirm the Queue Depth is set
+  shell: 'esxcli system module parameters list -m "{{ nfnics }}" | awk ''NR==6{print $3; exit}'''
+  register: confirm_set
+- debug:
+        msg: "The queue depth is currently set to: {{ confirm_set.stdout_lines }}"
+
+- name: The host needs to be rebooted
+  shell: esxcli system shutdown reboot --reason "nfnic parameter update"
+  when: "reboothost == 'yes'"

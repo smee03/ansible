@@ -1,0 +1,6 @@
+- name: "Gather info about vCenter settings"
+  vcenter_settings_info:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+  register: vcenter_settings_info

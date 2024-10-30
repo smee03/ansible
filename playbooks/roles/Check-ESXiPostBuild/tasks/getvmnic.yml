@@ -1,0 +1,11 @@
+- name: Gather info about vmnics of an ESXi Host
+  vmware_host_vmnic_info:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    esxi_hostname: "{{ esxi_hostname }}"
+    validate_certs: no
+  delegate_to: localhost
+  register: host_vmnics
+- debug:
+    var: host_vmnics

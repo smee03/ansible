@@ -1,0 +1,13 @@
+- name: Set Security Settings
+  vmware_dvs_portgroup:
+    hostname: '{{ vcenter_hostname }}'
+    username: '{{ vcenter_username }}'
+    password: '{{ vcenter_password }}'
+    portgroup_name: "{{ portgroup_name }}"
+    switch_name: "{{ dvSwitch_Name }}"
+    state: present
+    network_policy:
+      promiscuous: false
+      forged_transmits: false
+      mac_changes: false
+  delegate_to: localhost

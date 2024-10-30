@@ -1,0 +1,15 @@
+- name: Create a folder in the datastore
+  vsphere_file:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    validate_certs: no
+    datacenter: "{{ datacenter }}"
+    datastore: "{{ item }}"
+    path: /syslog
+    state: directory
+  delegate_to: localhost
+  register: syslogfoldercreate
+  loop: "{{ datastore | regex_replace('\n', ',') | split(',') }}"
+- debug:
+    var: syslogfoldercreate

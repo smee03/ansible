@@ -1,0 +1,71 @@
+param (
+    [string]$esxi_hostname
+)
+
+# Check if VMware PowerCLI module is installed, if not, install it
+if (-not (Get-Module -ListAvailable -Name VMware.PowerCLI)) {
+    Install-Module -Name VMware.PowerCLI -Scope AllUsers -AllowClobber -Force
+}
+Import-Module -Name VMware.PowerCLI -ErrorAction Stop
+
+# Connect to vCenter using the provided credentials from Jenkins environment variables
+Connect-VIServer -Server $env:vcenter_hostname -User $env:vcenter_username -Password $env:vcenter_password -ErrorAction Stop
+
+# Trim any whitespace from the hostname
+$esxi_hostname = $esxi_hostname.Trim()
+
+# Output current processing host
+Write-Output "Processing ESXi host: $esxi_hostname"
+
+# Get the specific ESXi host
+$esxiHost = Get-VMHost -Name $esxi_hostname
+
+if ($esxiHost) {
+    # Retrieve advanced settings for the ESXi host
+    $advancedSettings = Get-AdvancedSetting -Entity $esxiHost
+
+    # Define the settings you want to filter (optional)
+    $desiredSettings = @(
+	    "Config.HostAgent.log.level",
+            "Annotations.WelcomeMessage",
+            "Syslog.global.logHost",
+            "Syslog.global.logDir",
+            "Config.HostAgent.plugins.hostsvc.esxAdminsGroup",
+            "VMFS3.GBLAllowMW",
+            "LSOM.lsomEnableRebuildOnLSE",
+            "VSAN.TrimDisksBeforeUseGranularity",
+            "VMFS3.LFBCSlabSizeMaxMB",
+            "UserVars.SuppressShellWarning",
+            "Security.SshSessionLimit",
+            "Security.AccountUnlockTime",
+            "Security.PasswordQualityControl",
+            "Security.AccountLockFailures",
+            "Security.PasswordMaxDays",
+            "Security.PasswordHistory",
+            "DCUI.Access",
+            "UserVars.DcuiTimeOut",
+            "Net.DVFilterBindIpAddress",
+            "Config.HostAgent.plugins.solo.enableMob": "False"
+    )
+
+    # Filter the advanced settings to include only the desired ones
+    $filteredSettings = $advancedSettings | Where-Object { $desiredSettings -contains $_.Name }
+
+    # Convert the filtered settings to a hashtable
+    $combinedOutput = @()
+    foreach ($setting in $filteredSettings) {
+        $combinedOutput += [PSCustomObject]@{
+            HostName = $esxi_hostname
+            Name     = $setting.Name
+            Value    = $setting.Value
+        }
+    }
+
+    # Output the combined results
+    $combinedOutput | ConvertTo-Json
+} else {
+    Write-Output "The ESXi host '$esxi_hostname' could not be found."
+}
+
+# Disconnect from the vCenter server
+Disconnect-VIServer -Server $env:vcenter_hostname -Confirm:$false

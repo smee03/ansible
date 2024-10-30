@@ -1,0 +1,36 @@
+{
+  "ESXi_Hostname": "{{ esxi_hostname }}",
+  "ESXi_License_Info_License": "{{ esxi_license_info_dict.License }}",
+  "ESXi_License_Info_Standard": "{{ esxi_license_info_dict.Standard }}",
+  "ESXi_License_Info_Version": "{{ esxi_license_info_dict.Version }}",
+  "Services_NTP_Name": "{{ ntpdservices.host_service_status[esxi_hostname].service_name }}",
+  "Services_NTP_State": "{{ ntpdservices.host_service_status[esxi_hostname].actual_service_state }}",
+  "Services_NTP_Standard": "{{ 'true' if not ntpdservices.host_service_status[esxi_hostname].changed else 'false' }}",
+  "Services_SSH_Name": "{{ sshdstopcheck.host_service_status[esxi_hostname].service_name }}",
+  "Services_SSH_State": "{{ sshdstopcheck.host_service_status[esxi_hostname].actual_service_state }}",
+  "Services_SSH_Standard": "{{ 'true' if not sshdstopcheck.host_service_status[esxi_hostname].changed else 'false' }}",
+  "NTP_Servers_Standard": "{{ 'true' if not ntpstatus.host_ntp_status[esxi_hostname].changed else 'false' }}",
+  "Policies_NTP_Name": "{{ ntpdpolicy.host_service_status[esxi_hostname].service_name }}",
+  "Policies_NTP_Service_Policy_State": "{{ ntpdpolicy.host_service_status[esxi_hostname].actual_service_state }}",
+  "Policies_NTP_Policy": "{{ ntpdpolicy.host_service_status[esxi_hostname].actual_service_policy }}",
+  "Policies_NTP_Standard": "{{ 'true' if not ntpdpolicy.host_service_status[esxi_hostname].changed else 'false' }}",
+  "Policies_SSH_Name": "{{ sshpolicy.host_service_status[esxi_hostname].service_name }}",
+  "Policies_SSH_Service_Policy_State": "{{ sshpolicy.host_service_status[esxi_hostname].actual_service_state }}",
+  "Policies_SSH_Service_Policy": "{{ sshpolicy.host_service_status[esxi_hostname].actual_service_policy }}",
+  "Policies_SSH_Standard": "{{ 'true' if sshpolicy.host_service_status[esxi_hostname].actual_service_policy == 'off' else 'false' }}",
+  "Local_Storage_Renamed": "{% if localstorage_check.datastores[0].accessible %}true{% else %}false{% endif %}",
+  "Syslog_Folder_Exists": "{% if syslogfoldercreate.changed == false %}true{% else %}false{% endif %}",
+  "Host_Management_Current_State": "{{ powermgmt.result[esxi_hostname].previous_state }}",
+  "Host_Management_Desired_State": "{{ powermgmt.result[esxi_hostname].desired_state }}",
+  "Host_Management_Standard": "{{ 'true' if not powermgmt.result[esxi_hostname].changed else 'false' }}",
+  "Domain_Standard": "{{ 'true' if not adjoin.result[esxi_hostname].changed else 'false' }}",
+  "Networking_IPv6_Disabled": "{{ 'true' if ipv6disable.changed == false else 'false' }}",
+  {% set settings = tcpipupdate.diff.before.default %}
+  {% for key, value in settings.items() %}
+  "TCP_IP_Default_Stack_Adv_Settings_{{ key }}": {{ value | tojson }}{% if not loop.last %},{% endif %}
+  {% endfor %}
+  "TCP_IP_Default_Stack_Provisioning": {{ tcpipupdate.provisioning | tojson }},
+  "TCP_IP_Default_Stack_VMotion": {{ tcpipupdate.vmotion | tojson }},
+  "TCP_IP_Default_Stack_VXLAN": {{ tcpipupdate.vxlan | tojson }},
+  "Advanced_Settings_List": {{ advanced_settings_list | to_nice_json }}
+}

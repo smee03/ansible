@@ -1,0 +1,37 @@
+- name: VM powered on?
+  vmware_guest_powerstate:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    validate_certs: no
+    name: "{{ vm_name }}"
+    state: "{{ shutdown_type }}"
+   delegate_to: localhost
+   register: poweroff
+
+- name: pause until it's powered off
+  pause:
+    seconds: "{{ pause }}"
+
+- name: Upgrade hardware version
+  vmware_guest:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    validate_certs: no
+    name: "{{ vm_name }}"
+    hardware:
+      version: "{{ hardware_version }}"
+  delegate_to: localhost
+  register: hardware_version
+
+- name: Power on the VM
+  vmware_guest_powerstate:
+     hostname: "{{ vcenter_hostname }}"
+     username: "{{ vcenter_username }}"
+     password: "{{ vcenter_password }}"
+     validate_certs: no
+     name: "{{ vm_name }}"
+     state: powered-on
+  delegate_to: localhost
+  register: poweron

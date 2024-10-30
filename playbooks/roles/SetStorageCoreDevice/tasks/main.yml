@@ -1,0 +1,21 @@
+- name: Create a list of PURE NAA IDs
+  shell: esxcfg-scsidevs -l | grep -B 0 "PURE" | grep "naa" | awk '{print $7}' | sed -e "s/(//" -e "s/)//" > /tmp/naalist.txt
+  
+- name: Copy script
+  copy:
+    src: /etc/ansible/scripts/setstoragedevice.sh
+    dest: /tmp
+    mode: u+x
+
+- name: Execute the command against the NAA List
+  shell: /tmp/setstoragedevice.sh
+
+- name: Remove naalist
+  file:
+    path: /tmp/naalist.txt
+    state: absent
+
+- name: Remove script
+  file:
+    path: /tmp/setstoragedevice.sh
+    state: absent

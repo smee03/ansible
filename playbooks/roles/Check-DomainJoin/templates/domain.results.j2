@@ -1,0 +1,2 @@
+Hostname,Domain_Status,Compliant
+"{{ esxi_hostname }}","{{ adjoin.result[esxi_hostname].msg }}","{{ 'true' if not adjoin.result[esxi_hostname].changed else 'false' }}"

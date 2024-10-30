@@ -1,0 +1,103 @@
+{
+  "ESXi_Hostname": "{{ esxi_hostname }}",
+  "ESXi_License_Info": [
+      "License": "{{ esxi_license_info.results[0].stdout }}"
+      "Standard": "{{ 'True' if esxi_license_info.results[0].stdout != 'Evaluation License' }}"
+      "Version": "{{ esxi_license_version.results[0].stdout }}"
+   ],
+  "Services": [
+    {% for item in ntpdservices.results %}
+      {% for host, status in item.host_service_status.items() %}
+      {
+        "Name": "{{ status.service_name }}",
+        "State": "{{ status.actual_service_state }}",
+        "Standard": "{{ 'True' if not status.changed else 'False' }}"
+      }
+      {% endfor %}
+    {% endfor %}
+    {% for item in sshdstopcheck.results %}
+      {% for host, status in item.host_service_status.items() %}
+      {
+        "Name": "{{ status.service_name }}",
+        "State": "{{ status.actual_service_state }}",
+        "Standard": "{{ 'True' if status.actual_service_state == 'stopped' else 'False' }}",
+        "Notes": "SSH Final Check; should be disabled"
+      },
+      {% endfor %}
+    {% endfor %}
+    {% for item in ntpstatus.results %}
+      {% for host, status in item.host_ntp_status.items() %}
+      {
+        "NTP_Servers": "{{ status.ntp_servers_current }}",
+        "Standard": "{{ 'True' if not status.changed else 'False' }}"
+      },
+      {% endfor %}
+    {% endfor %}
+  ],
+  "Policies": [
+    {% for item in ntpdpolicy.results %}
+      {% for host, status in item.host_service_status.items() %}
+      {
+        "Name": "{{ status.service_name }}",
+        "Service_Policy_State": "{{ status.actual_service_state }}",
+        "Service_Policy": "{{ status.actual_service_policy }}",
+        "Standard": "{{ 'True' if not status.changed else 'False' }}"
+      },
+      {% endfor %}
+    {% endfor %}
+    {% for item in sshpolicy.results %}
+      {% for host, status in item.host_service_status.items() %}
+      {
+        "Name": "{{ status.service_name }}",
+        "Service_Policy_State": "{{ status.actual_service_state }}",
+        "Service_Policy": "{{ status.actual_service_policy }}",
+        "Standard": "{{ 'True' if status.actual_service_policy == 'off' else 'False' }}"
+      },
+      {% endfor %}
+    {% endfor %}
+  ],
+  "Storage": [
+    "Local_Storage_Renamed": "{{ localstorage_check.stat.exists }}",
+    "Syslog_Folder_Exists": "{{ syslogfolderverify.stat.exists }}"
+  ],
+  "Host_Management": [
+    {% for item in powermgmt.results %}
+      {% for host, result in item.result.items() %}
+      {
+        "Current_State": "{{ result.current_state }}",
+        "Desired_State": "{{ result.desired_state }}",
+        "Standard": "{{ 'True' if not result.current_state != result.desired_state else 'False' }}"
+      },
+      {% endfor %}
+    {% endfor %}
+  ],
+  "Domain": [
+    "Domain_Joined": "{{ domain_status }}"
+  ],
+  "Networking": [
+    "IPv6_Standard": "{{ 'True' if ipv6_confirm.stdout_lines[0] == 'false' else 'False' }}"
+  ],
+  "TCP_IP_Default_Stack": [
+    {% for item in tcpipupdate.results %}
+      {% for key, value in item.diff.before.default.items() %}
+      {
+        "Key": "{{ key }}",
+        "Value": "{{ value }}",
+        "Fix": "{{ item.changed }}"
+      },
+      {% endfor %}
+    {% endfor %}
+  ],
+  "Advanced_Settings": [
+    {% for item in options.results %}
+      {% for key, value in item.invocation.module_args.options.items() %}
+      {
+        "Key": "{{ key }}",
+        "Value": "{{ value }}",
+        "Changes_needed": "{{ item.msg }}",
+        "Fix": "{{ item.changed }}"
+      },
+      {% endfor %}
+    {% endfor %}
+  ]
+}

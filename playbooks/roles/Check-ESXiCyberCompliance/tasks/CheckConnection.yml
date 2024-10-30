@@ -1,0 +1,13 @@
+- name: Check ESXi host state in vCenter
+  vmware_host_facts:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    esxi_hostname: "{{ esxi_hostname }}"
+    validate_certs: no
+  delegate_to: localhost
+  register: esxi_facts
+
+- name: Set connectivity check result
+  set_fact:
+     connectivity_check: "{{ esxi_facts.ansible_facts.ansible_host_connection_state }}"

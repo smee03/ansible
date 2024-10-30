@@ -1,0 +1,47 @@
+- name: Check if ESXi is joined to tfayd domain
+  vmware_host_active_directory:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    esxi_hostname: "{{ esxi_hostname }}"
+    ad_domain: TFAYD.COM
+    ad_user: "{{ vcenter_username }}"
+    ad_password: "{{ vcenter_password }}"
+    ad_state: present
+    validate_certs: false
+  register: adjoin
+  delegate_to: localhost
+- debug:
+    var: adjoin
+ 
+- name: Render output to file using Jinja2 template
+  template:
+    src: templates/domain_results.j2
+    dest: "{{ workspace }}/DomainStatus_temp.csv"
+  vars:
+    adjoin: "{{ adjoin }}"
+  register: templateoutput
+  delegate_to: localhost
+  check_mode: no
+- debug:
+    var: templateoutput
+
+- name: Append temp csv with main csv
+  shell: |
+    if [ -f "{{ workspace }}/DomainStatus.csv" ]; then
+      awk 'NR>1' "{{ workspace }}/DomainStatus_temp.csv" >> "{{ workspace }}/DomainStatus.csv"
+    else
+      cp "{{ workspace }}/DomainStatus_temp.csv" "{{ workspace }}/DomainStatus.csv"
+    fi
+  register: append
+  delegate_to: localhost
+  check_mode: no
+- debug:
+    var: append
+
+- name: Delete temp file
+  file:
+    path: "{{ workspace }}/DomainStatus_temp.csv"
+    state: absent
+  check_mode: no
+  delegate_to: localhost

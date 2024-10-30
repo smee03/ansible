@@ -1,0 +1,13 @@
+- name: Check if app is installed
+  hosts: all
+  gather_facts: yes
+  become: no
+  vars:
+   package1: "{{ application }}"
+
+  tasks:
+   - name: Query Account
+     shell: rpm -qa|grep "{{ application }}"
+     register: app
+   - debug:
+      var: app.stdout_lines

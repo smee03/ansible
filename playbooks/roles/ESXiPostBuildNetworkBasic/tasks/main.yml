@@ -1,0 +1,216 @@
+## Enable SSH ##
+- name: Enable sshd services for ESXi
+  vmware_host_service_manager:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    esxi_hostname: "{{ esxi_hostname }}"
+    validate_certs: false
+    service_name: TSM-SSH
+    state: start
+  register: sshdenable
+  delegate_to: localhost
+
+- name: Creating a new dvswitch if requested
+  vmware_dvswitch:
+    hostname: '{{ vcenter_hostname }}'
+    username: '{{ vcenter_username }}'
+    password: '{{ vcenter_password }}'
+    datacenter: '{{ datacenter }}'
+    switch: "{{ dvswitch_name }}"
+    version: "{{ switch_version }}"
+    mtu: 9000
+    uplink_quantity: 8
+    multicast_filtering_mode: snooping
+    discovery_protocol: cdp
+    discovery_operation: both
+    state: present
+    validate_certs: false
+  when: "new_dvswitch == 'yes'"
+  delegate_to: localhost
+
+- name: Add dvSwitch to host
+  vmware_dvs_host:
+   hostname: '{{ vcenter_hostname }}'
+   username: '{{ vcenter_username }}'
+   password: '{{ vcenter_password }}'
+   esxi_hostname: "{{ esxi_hostname }}"
+   switch_name: "{{ dvswitch_name }}"
+   validate_certs: false
+  register: dvswitch
+  delegate_to: localhost
+
+- name: Get Port ID for Uplink1
+  shell: esxcfg-vswitch -l | awk 'NR==13{print $1; exit}'
+  register: getportID1
+- set_fact:
+        portID1: "{{ getportID1.stdout | replace(\"'\",'') }}"
+
+- name: add vmnic1 to uplink1
+  shell: esxcfg-vswitch -P vmnic1 -V '{{ portID1 }}' "{{ dvswitch_name }}"
+  register: addvmnic
+
+- name: Get Port ID for Uplink2
+  shell: esxcfg-vswitch -l | awk 'NR==14{print $1; exit}'
+  register: getportID2
+- set_fact:
+        portID2: "{{ getportID2.stdout | replace(\"'\",'')  }}"
+
+- name: add vmnic2 to uplink2
+  shell: esxcfg-vswitch -P vmnic2 -V '{{ portID2 }}' "{{ dvswitch_name }}"
+  register: addvmnic
+
+- name: Get Port ID for Uplink3
+  shell: esxcfg-vswitch -l | awk 'NR==15{print $1; exit}'
+  register: getportID3
+- set_fact:
+        portID3: "{{ getportID3.stdout | replace(\"'\",'') }}"
+
+- name: add vmnic3 to uplink3
+  shell: esxcfg-vswitch -P vmnic3 -V '{{ portID3 }}' "{{ dvswitch_name }}"
+  register: addvmnic
+
+- name: Get Port ID for Uplink4
+  shell: esxcfg-vswitch -l | awk 'NR==16{print $1; exit}'
+  register: getportID4
+- set_fact:
+        portID4: "{{ getportID4.stdout | replace(\"'\",'')  }}"
+
+- name: add vmnic4 to uplink4
+  shell: esxcfg-vswitch -P vmnic4 -V '{{ portID4 }}' "{{ dvswitch_name }}"
+  register: addvmnic
+
+- name: Get Port ID for Uplink5
+  shell: esxcfg-vswitch -l | awk 'NR==17{print $1; exit}'
+  register: getportID5
+- set_fact:
+        portID5: "{{ getportID5.stdout | replace(\"'\",'') }}"
+
+- name: add vmnic5 to uplink5
+  shell: esxcfg-vswitch -P vmnic5 -V '{{ portID5 }}' "{{ dvswitch_name }}"
+  register: addvmnic
+
+- name: Get Port ID for Uplink6
+  shell: esxcfg-vswitch -l | awk 'NR==18{print $1; exit}'
+  register: getportID6
+- set_fact:
+        portID6: "{{ getportID6.stdout | replace(\"'\",'')  }}"
+
+- name: add vmnic6 to uplink6
+  shell: esxcfg-vswitch -P vmnic6 -V '{{ portID6 }}' "{{ dvswitch_name }}"
+  register: addvmnic
+
+- name: Get Port ID for Uplink7
+  shell: esxcfg-vswitch -l | awk 'NR==19{print $1; exit}'
+  register: getportID7
+- set_fact:
+        portID7: "{{ getportID7.stdout | replace(\"'\",'') }}"
+
+- name: add vmnic7 to uplink7
+  shell: esxcfg-vswitch -P vmnic7 -V '{{ portID7 }}' "{{ dvswitch_name }}"
+  register: addvmnic
+
+- name: Add vMotion vmkernel1 port with vMotion TCP/IP stack
+  vmware_vmkernel:
+    hostname: '{{ vcenter_hostname }}'
+    username: '{{ vcenter_username }}'
+    password: '{{ vcenter_password }}'
+    esxi_hostname: '{{ esxi_hostname }}'
+    dvswitch_name: "{{ dvswitch_name }}"
+    portgroup_name: "{{ vmks_vmotion_dhcp_portgroup_name }}"
+    validate_certs: false
+    device: vmk1
+    network:
+      type: 'dhcp'
+      tcpip_stack: vmotion
+    state: present
+  delegate_to: localhost
+  register: vmk1
+
+- name: Add vMotion vmkernel2 port with vMotion TCP/IP stack
+  vmware_vmkernel:
+    hostname: '{{ vcenter_hostname }}'
+    username: '{{ vcenter_username }}'
+    password: '{{ vcenter_password }}'
+    esxi_hostname: '{{ esxi_hostname }}'
+    dvswitch_name: "{{ dvswitch_name }}"
+    portgroup_name: "{{ vmks_vmotion_dhcp_portgroup_name }}"
+    validate_certs: false
+    device: vmk2
+    network:
+      type: 'dhcp'
+      tcpip_stack: vmotion
+    state: present
+  delegate_to: localhost
+  register: vmk2
+
+- name: Add vMotion vmkernel3 port with vMotion TCP/IP stack
+  vmware_vmkernel:
+    hostname: '{{ vcenter_hostname }}'
+    username: '{{ vcenter_username }}'
+    password: '{{ vcenter_password }}'
+    esxi_hostname: '{{ esxi_hostname }}'
+    dvswitch_name: "{{ dvswitch_name }}"
+    portgroup_name: "{{ vmks_vmotion_dhcp_portgroup_name }}"
+    validate_certs: false
+    device: vmk3
+    network:
+      type: 'dhcp'
+      tcpip_stack: vmotion
+    state: present
+  delegate_to: localhost
+  register: vmk3
+
+- name: Migrate Management vmk0
+  vmware_migrate_vmk:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    esxi_hostname: "{{ esxi_hostname }}"
+    validate_certs: false
+    device: vmk0
+    current_switch_name: vSwitch0
+    current_portgroup_name: "Management Network"
+    migrate_switch_name: "{{ dvswitch_name }}"
+    migrate_portgroup_name: "{{ mgmt_portgroup }}"
+  delegate_to: localhost
+
+- name: Delete a vSwitch0
+  vmware_vswitch:
+    hostname: "{{ esxi_hostname }}"
+    username: root
+    password: "{{ default_esxi_root_password }}"
+    esxi_hostname: "{{ esxi_hostname }}"
+    validate_certs: false
+    switch_name: vSwitch0
+    state: absent
+  register: delete_vswitch
+  delegate_to: localhost
+
+- name: Delete a vSwitch0 if using custom ssh
+  vmware_vswitch:
+    hostname: "{{ esxi_hostname }}"
+    username: root
+    password: "{{ ssh_user_password }}"
+    esxi_hostname: "{{ esxi_hostname }}"
+    validate_certs: false
+    switch_name: vSwitch0
+    state: absent
+  delegate_to: localhost
+  when: delete_vswitch.failed
+
+- name: Configure TCP/IP Provisioning, vmotion
+  community.vmware.vmware_host_tcpip_stacks:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    validate_certs: false
+    esxi_hostname: "{{ esxi_hostname }}"
+    provisioning:
+      congestion_algorithm: newreno
+      max_num_connections: 11000
+    vmotion:
+      congestion_algorithm: newreno
+      max_num_connections: 11000
+  register: tcpipstack
+  delegate_to: localhost

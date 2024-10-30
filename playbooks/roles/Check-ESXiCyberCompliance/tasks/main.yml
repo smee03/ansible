@@ -1,0 +1,157 @@
+- name: Block 1 of ESXi Compliance Checks
+  block:
+  - name: Start ntpd with ESXi host - Includes Benchmarks 2.1.1
+    vmware_host_service_manager:
+      hostname: "{{ vcenter_hostname }}"
+      username: "{{ vcenter_username }}"
+      password: "{{ vcenter_password }}"
+      esxi_hostname: "{{ esxi_hostname }}"
+      service_name: ntpd
+      service_policy: "on"
+      state: present
+      validate_certs: false
+    register: ntpdpolicy
+    delegate_to: localhost
+
+  - name: Start ntpd services for ESXi - Includes Cyber Sec Benchmarks 2.1.2 2.1.3
+    vmware_host_service_manager:
+      hostname: "{{ vcenter_hostname }}"
+      username: "{{ vcenter_username }}"
+      password: "{{ vcenter_password }}"
+      esxi_hostname: "{{ esxi_hostname }}"
+      service_name: ntpd
+      state: present
+      validate_certs: false
+    register: ntpdservices
+    delegate_to: localhost
+
+  - name: Configure NTP servers for an ESXi Host - Includes Cyber Sec Benchmarks 2.1.4
+    vmware_host_ntp:
+      hostname: "{{ vcenter_hostname }}"
+      username: "{{ vcenter_username }}"
+      password: "{{ vcenter_password }}"
+      esxi_hostname: "{{ esxi_hostname }}"
+      validate_certs: false
+      state: present
+      ntp_servers:
+          - nbcutime1.inbcu.com
+          - nbcutime2.inbcu.com
+          - nbcutime3.inbcu.com
+          - nbcutime4.inbcu.com
+          - nbcutime5.inbcu.com
+    delegate_to: localhost
+    register: ntpstatus
+
+  - name: SSH doesn't start with ESXi host - Includes Cyber Sec Benchmarks 5.3.1
+    vmware_host_service_manager:
+      hostname: "{{ vcenter_hostname }}"
+      username: "{{ vcenter_username }}"
+      password: "{{ vcenter_password }}"
+      esxi_hostname: "{{ esxi_hostname }}"
+      validate_certs: false
+      service_name: TSM-SSH
+      service_policy: off
+      state: stop
+    register: sshpolicy
+    delegate_to: localhost
+
+  - name: Stop sshd services for ESXi - Includes Cyber Sec Benchmarks 5.2
+    vmware_host_service_manager:
+      hostname: "{{ vcenter_hostname }}"
+      username: "{{ vcenter_username }}"
+      password: "{{ vcenter_password }}"
+      esxi_hostname: "{{ esxi_hostname }}"
+      validate_certs: false
+      service_name:  TSM-SSH
+      state: stop
+    register: sshdstopservices
+    delegate_to: localhost
+
+  - name: Stop ESXi Shell includes benchmarks 5.3
+    vmware_host_service_manager:
+      hostname: "{{ vcenter_hostname }}"
+      username: "{{ vcenter_username }}"
+      password: "{{ vcenter_password }}"
+      esxi_hostname: "{{ esxi_hostname }}"
+      validate_certs: false
+      service_name: TSM
+      state: stop
+      service_policy: off
+    register: sshdstopshell
+    delegate_to: localhost
+
+  - name: Updating Advanced Settings includes benchmarks 2.3 2.6 3.2 3.3 4.2 - 4.5, 5.1, 5.10
+    vmware_host_config_manager:
+      hostname: "{{ vcenter_hostname }}"
+      username: "{{ vcenter_username }}"
+      password: "{{ vcenter_password }}"
+      esxi_hostname: "{{ esxi_hostname }}"
+      validate_certs: false
+      options:
+        "Syslog.global.logHost": "tcp://slaac-corp-hf-001.inbcu.com:1514"
+        "Syslog.global.logDir": "[localstorage_{{ esxi_hostname.split(\".\")[0] | lower }}] syslog"
+        "Security.AccountUnlockTime": "900"
+        "Security.PasswordQualityControl": "retry=5 min=disabled,disabled,disabled,disabled,15 similar=deny"
+        "Security.AccountLockFailures": "5"
+        "Security.PasswordHistory": "5"
+        "DCUI.Access": root
+        "UserVars.DcuiTimeOut": "600"
+        "Net.DVFilterBindIpAddress": ""
+        "Config.HostAgent.plugins.solo.enableMob": False
+    register: options
+    delegate_to: localhost
+
+  - name: ESXi tfayd domain services includes benchmarks 4.6
+    vmware_host_active_directory:
+      hostname: "{{ vcenter_hostname }}"
+      username: "{{ vcenter_username }}"
+      password: "{{ vcenter_password }}"
+      esxi_hostname: "{{ esxi_hostname }}"
+      ad_domain: TFAYD.COM
+      ad_user: "{{ vcenter_username }}"
+      ad_password: "{{ vcenter_password }}"
+      ad_state: present
+      validate_certs: false
+    register: adjoin
+    delegate_to: localhost
+
+  - name: Render output to file using Jinja2 template with JSON data
+    template:
+      src: templates/json_template.j2
+      dest: "{{ workspace }}/ESXi_CyberSec_Compliance_Check_temp.csv"
+    vars:
+      ntpdservices: "{{ ntpdservices }}"
+      ntpstatus: "{{ ntpstatus }}"
+      ntpdpolicy: "{{ ntpdpolicy }}"
+      sshservices: "{{ sshservices }}"
+      sshpolicy: "{{ sshpolicy }}"
+      options: "{{ options }}"
+      adjoin: "{{ adjoin }}"
+      sshdstopshell: "{{ sshdstopshell }}"
+      domainstatus: "{{ domainstatus }}"
+      sshdstopcheck: "{{ sshdstopcheck }}"
+      advanced_settings_list: "{{ advanced_settings_list }}"
+      sshdstopservices: "{{ sshdstopservices }}"
+    register: templateoutput
+    delegate_to: localhost
+    check_mode: no
+  - debug:
+      var: templateoutput
+
+  - name: Append temp csv with main csv
+    shell: |
+      if [ -f "{{ workspace }}/ESXi_CyberSec_Compliance_Check.csv" ]; then
+        awk 'NR>1' "{{ workspace }}/ESXi_CyberSec_Compliance_Check_temp.csv" >> "{{ workspace }}/ESXi_CyberSec_Compliance_Check.csv"
+      else
+        cp "{{ workspace }}/ESXi_CyberSec_Compliance_Check_temp.csv" "{{ workspace }}/ESXi_CyberSec_Compliance_Check.csv"
+      fi
+    register: append
+    check_mode: no
+  - debug:
+      var: append
+
+  - name: Delete temp file
+    file:
+      path: "{{ workspace }}/ESXi_CyberSec_Compliance_Check_temp"
+      state: absent
+    check_mode: no

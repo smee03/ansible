@@ -1,0 +1,14 @@
+- name: Get Advanced Settings via PS
+  shell: |
+        pwsh /etc/ansible/roles/Check-ESXiPostBuild/files/advancedsettings.ps1 -esxi_hostname "{{ hostvars[inventory_hostname]['esxi_hostname'] }}"
+  register: advancedsettings
+  delegate_to: localhost
+  check_mode: no
+
+- name: Debug Advanced Settings Output
+  debug:
+    msg: "{{ advancedsettings.stdout }}"
+
+- name: Parse Advanced Settings JSON
+  set_fact:
+    advanced_settings_dict: "{{ advancedsettings.stdout | from_json }}"

@@ -1,0 +1,41 @@
+- name: Update Mail relay, SNMP, Timeout settings to the new vCenter VM
+  vmware_vcenter_settings:
+   hostname: "{{ vcenter_hostname }}"
+   username: "{{ vcenter_username }}"
+   password: "{{ vcenter_password }}"
+   validate_certs: no
+   mail:
+     server: mailrelay.inbcu.com
+     sender: "{{ mail_sender }}"
+   snmp_receivers:
+     snmp_receiver_1_url: localhost
+     snmp_receiver_1_enabled: true
+     snmp_receiver_1_port: 162
+     snmp_receiver_1_community: public
+   timeout_settings:
+     normal_operations: 30
+   long_operations: 120
+   logging_options: info
+   register: mail_relay
+   delegate_to: localhost
+- debug:
+   var: mail_relay
+
+# - name: Add vCenter license
+#vmware_vcenter_settings:
+#hostname: '{{ vcenter_hostname }}'
+#username: '{{ vcenter_username }}'
+#password: '{{ vcenter_password }}'
+#license: '{{ vcenter_license }}'
+#state: present
+#register: vcenter_license
+
+   #- name: Upgrade the VM hardware version
+   #vcenter_vm_hardware:
+   #upgrade_policy: AFTER_CLEAN_SHUTDOWN
+   #upgrade_version: VMX_15
+   #vm: "{{ lookup('vmware.vmware_rest.vm_moid','/{{ vcenter_datacenter }}/vm/{{ vm_name }}') }}"
+   #register: vm_hw
+   #delegate_to: localhost
+
+

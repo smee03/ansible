@@ -1,0 +1,36 @@
+# get server profile MOID from server name
+- name: "Intersight - retrieve MOID from profile {{ profile_name }}"
+  intersight_rest_api:
+    api_private_key: "{{ intersight_api_private_key }}"
+    api_key_id: "{{ intersight_api_public_key }}"
+    validate_certs: false
+    resource_path: /server/Profiles
+    query_params:
+      $filter: "Name eq '{{ profile_name }}'"
+      $select: "Moid"
+    return_list: true
+  register: profile_resp
+
+# register variable for profile MOID
+- name: "Intersight - register variable for profile MOID"
+  set_fact:
+    profile_moid: "{{ profile_resp.api_response[0].Moid }}"
+
+# get vHBA WWPNs from a given host
+- name: "Intersight - retrieve vHBA WWPNs from host {{ profile_moid }}"
+  intersight_rest_api:
+    api_private_key: "{{ intersight_api_private_key }}"
+    api_key_id: "{{ intersight_api_public_key }}"
+    validate_certs: false
+    resource_path: /vnic/FcIfs
+    query_params:
+      $filter: "Profile.Moid eq '{{ profile_moid }}'"
+      $select: "Name,Wwpn"
+      $orderby: "Name"
+    return_list: true
+  register: fnic_resp
+
+- name: "output Name and WWPN of each vHBA"
+  debug:
+    msg: "vHBA Name: {{ item.Name }}, WWPN: {{ item.Wwpn }}"
+  loop: "{{ fnic_resp.api_response }}"

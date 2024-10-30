@@ -1,0 +1,244 @@
+- name: Block of Post build tasks
+  block:
+      ## vv ESXi Services Section Start vv ##
+    - name: Start ntpd services for ESXi
+      vmware_host_service_manager:
+        hostname: "{{ vcenter_hostname }}"
+        username: "{{ vcenter_username }}"
+        password: "{{ vcenter_password }}"
+        esxi_hostname: "{{ esxi_hostname }}"
+        service_name: ntpd
+        state: present
+        validate_certs: false
+      register: ntpdservices
+      delegate_to: localhost
+    - debug:
+        var: ntpdservices
+
+    - name: Configure NTP servers for an ESXi Host
+      vmware_host_ntp:
+        hostname: "{{ vcenter_hostname }}"
+        username: "{{ vcenter_username }}"
+        password: "{{ vcenter_password }}"
+        esxi_hostname: "{{ esxi_hostname }}"
+        validate_certs: false
+        state: present
+        ntp_servers:
+            - nbcutime1.inbcu.com
+            - nbcutime2.inbcu.com
+            - nbcutime3.inbcu.com
+            - nbcutime4.inbcu.com
+      delegate_to: localhost
+      register: ntpstatus
+    - debug:
+        var: ntpstatus
+
+    - name: Start ntpd with ESXi host start
+      vmware_host_service_manager:
+        hostname: "{{ vcenter_hostname }}"
+        username: "{{ vcenter_username }}"
+        password: "{{ vcenter_password }}"
+        esxi_hostname: "{{ esxi_hostname }}"
+        service_name: ntpd
+        service_policy: "on"
+        state: present
+        validate_certs: false
+      register: ntpdpolicy
+      delegate_to: localhost
+    - debug:
+        var: ntpdpolicy
+
+    - name: SSH Policy off, doesn't start with ESXi host
+      vmware_host_service_manager:
+        hostname: "{{ vcenter_hostname }}"
+        username: "{{ vcenter_username }}"
+        password: "{{ vcenter_password }}"
+        esxi_hostname: "{{ esxi_hostname }}"
+        validate_certs: false
+        service_name: TSM-SSH
+        service_policy: "off"
+        state: stop
+      register: sshpolicy
+      delegate_to: localhost
+    - debug:
+        var: sshpolicy
+
+    ## ^^ ESXi Services Section End ^^ ##
+
+    - name: Configure TCP/IP Stack Default, provisioning, vmotion
+      community.vmware.vmware_host_tcpip_stacks:
+        hostname: "{{ vcenter_hostname }}"
+        username: "{{ vcenter_username }}"
+        password: "{{ vcenter_password }}"
+        validate_certs: false
+        esxi_hostname: "{{ esxi_hostname }}"
+        default:
+          hostname: '"{{ esxi_hostname.split(".")[0] | lower }}"'
+          domain: tfayd.com
+          preferred_dns: 100.123.1.1
+          alternate_dns: 100.123.1.2
+          search_domains:
+            - tfayd.com
+          congestion_algorithm: cubic
+          max_num_connections: 11000
+      register: tcpipupdate
+      delegate_to: localhost
+    - debug:
+        var: tcpipupdate
+
+    ## CREATE SYSLOG DIR and Check Local Storage ##
+
+    - name: Gather info from datacenter about specific datastore
+      vmware_datastore_info:
+        hostname: "{{ vcenter_hostname }}"
+        username: "{{ vcenter_username }}"
+        password: "{{ vcenter_password }}"
+        datacenter_name: "{{ datacenter }}"
+        name: "{{ 'localstorage_' + esxi_hostname.split('.')[0] | lower }}"
+        validate_certs: no
+      delegate_to: localhost
+      register: localstorage_check
+    - debug:
+        var: localstorage_check
+
+    - name: Create a folder in the datastore
+      vsphere_file:
+        hostname: "{{ vcenter_hostname }}"
+        username: "{{ vcenter_username }}"
+        password: "{{ vcenter_password }}"
+        validate_certs: no
+        datacenter: "{{ datacenter }}"
+        datastore: "{{ 'localstorage_' + esxi_hostname.split('.')[0] | lower }}"
+        path: /syslog
+        state: directory
+      delegate_to: localhost
+      register: syslogfoldercreate
+    - debug:
+        var: syslogfoldercreate
+
+    - name: Set the Power Management Policy of a host system to high-performance
+      vmware_host_powermgmt_policy:
+        hostname: "{{ vcenter_hostname }}"
+        username: "{{ vcenter_username }}"
+        password: "{{ vcenter_password }}"
+        esxi_hostname: "{{ esxi_hostname }}"
+        policy: high-performance
+        validate_certs: false
+      delegate_to: localhost
+      register: powermgmt
+    - debug:
+        var: powermgmt
+
+    ## ESXi Domain Join; Computer Object Must Successfully be created/done  ##
+
+    - name: Join ESXi to tfayd domain
+      vmware_host_active_directory:
+        hostname: "{{ vcenter_hostname }}"
+        username: "{{ vcenter_username }}"
+        password: "{{ vcenter_password }}"
+        esxi_hostname: "{{ esxi_hostname }}"
+        ad_domain: TFAYD.COM
+        ad_user: "{{ vcenter_username }}"
+        ad_password: "{{ vcenter_password }}"
+        ad_state: present
+        validate_certs: false
+      register: adjoin
+      delegate_to: localhost
+    - debug:
+        var: adjoin
+
+    ## vv --Disable IPv6 vv ##
+
+    - name: Disable IPv6
+      vmware_host_ipv6:
+        hostname: "{{ vcenter_hostname }}"
+        username: "{{ vcenter_username }}"
+        password: "{{ vcenter_password }}"
+        esxi_hostname: "{{ esxi_hostname }}"
+        validate_certs: no
+        state: disabled
+      register: ipv6disable
+      delegate_to: localhost
+    - debug:
+        var: ipv6disable
+
+    ## ^^ --Disable IPv6 ^^ ##
+
+    ## Disable SSH ##
+    - name: Stop sshd services for ESXi after all tasks are completed
+      vmware_host_service_manager:
+        hostname: "{{ vcenter_hostname }}"
+        username: "{{ vcenter_username }}"
+        password: "{{ vcenter_password }}"
+        esxi_hostname: "{{ esxi_hostname }}"
+        validate_certs: false
+        service_name: TSM-SSH
+        state: stop
+      register: sshdstop
+      check_mode: no
+      delegate_to: localhost
+    - debug:
+        var: sshdstop
+
+    ## Check Disable SSH ##
+    - name: Stop sshd services for ESXi after all tasks are completed
+      vmware_host_service_manager:
+        hostname: "{{ vcenter_hostname }}"
+        username: "{{ vcenter_username }}"
+        password: "{{ vcenter_password }}"
+        esxi_hostname: "{{ esxi_hostname }}"
+        validate_certs: false
+        service_name: TSM-SSH
+        state: stop
+      register: sshdstopcheck
+      delegate_to: localhost
+    - debug:
+        var: sshdstopcheck
+
+    - name: Render output to file using Jinja2 template with JSON data
+      template:
+        src: templates/json_template.j2
+        dest: "{{ workspace }}/ESXi_PB1_Check-temp.json"
+      vars:
+        ntpdservices: "{{ ntpdservices }}"
+        ntpstatus: "{{ ntpstatus }}"
+        ntpdpolicy: "{{ ntpdpolicy }}"
+        sshservices: "{{ sshservices }}"
+        sshpolicy: "{{ sshpolicy }}"
+        tcpipupdate: "{{ tcpipupdate }}"
+        localstorage_check: "{{ localstorage_check }}"
+        syslogfolderverify: "{{ syslogfolderverify }}"
+        syslogdir: "{{ syslogdir }}"
+        hbascan: "{{ hbascan }}"
+        powermgmt: "{{ powermgmt }}"
+        adjoin: "{{ adjoin }}"
+        ipv6disable: "{{ ipv6disable }}"
+        sshdstop: "{{ sshdstop }}"
+        domainstatus: "{{ domainstatus }}"
+        sshdstopcheck: "{{ sshdstopcheck }}"
+        syslogfoldercreate: "{{ syslogfoldercreate }}"
+        advanced_settings_list: "{{ advanced_settings_list }}"
+      register: templateoutput
+      delegate_to: localhost
+      check_mode: no
+    - debug:
+        var: templateoutput
+
+    - name: Append temp file with main file if more than one host
+      shell: |
+              cat "{{ workspace }}/ESXi_PB1_Check-temp.json" >> "{{ workspace }}/ESXi_PB1_Check.json"
+              echo "," >> "{{ workspace }}/ESXi_PB1_Check.json"
+      check_mode: no
+      when: "more_than_one_host == 'yes'"
+
+    - name: Append temp file with main file if only one host
+      shell: |
+              cat "{{ workspace }}/ESXi_PB1_Check-temp.json" >> "{{ workspace }}/ESXi_PB1_Check.json"
+      check_mode: no
+      when: "more_than_one_host == 'no'"
+
+    - name: Delete temp file
+      file:
+        path: "{{ workspace }}/ESXi_PB1_Check-temp.json"
+        state: absent
+      check_mode: no

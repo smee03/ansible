@@ -1,0 +1,19 @@
+- name: Run PowerShell script to get advanced settings
+  shell: pwsh /etc/ansible/roles/Check-ESXiPostBuild/files/advancedsettings.ps1 -esxi_hostname "{{ esxi_hostname }}"
+  register: ps_output
+  check_mode: no
+
+- name: Remove ANSI escape sequences
+  set_fact:
+    cleaned_output: "{{ ps_output.stdout | regex_replace('\\x1b\\[[0-9;]*[a-zA-Z]', '') }}"
+  check_mode: no
+
+- name: Extract settings
+  set_fact:
+    advanced_settings_list: "{{ cleaned_output | regex_findall('\\nName: (.*)\\nValue: (.*)\\n') }}"
+  check_mode: no
+
+- name: Print extracted settings
+  debug:
+    var: advanced_settings_list
+

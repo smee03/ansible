@@ -1,0 +1,47 @@
+- name: Create a new category?
+  vmware_tag_manager:
+    hostname: '{{ vcenter_hostname }}'
+    username: '{{ vcenter_username }}'
+    password: '{{ vcenter_password }}'
+    validate_certs: false
+    # category_id: "{{ category_id }}"
+    category_name: "{{ category_name }}"
+    category_cardinality: 'multiple'
+    associable_object_types: "All objects"
+    state: present
+  delegate_to: localhost
+  register: tag_category_result
+  when: "new_category == 'yes'"
+- debug:
+   var: new_tag_category
+
+- name: Create a new tag?
+  vmware_tag_manager:
+    hostname: '{{ vcenter_hostname }}'
+    username: '{{ vcenter_username }}'
+    password: '{{ vcenter_password }}'
+    validate_certs: false
+    category_id: "{{ tag_category_result.category_results.category_id }}"
+    tag_name: "{{ tag_name }}"
+    state: present
+  delegate_to: localhost
+  register: newtag_result
+  when: "new_tag == 'yes'"
+
+- name: Add tag to "{{ object_name }}"
+  vmware_tag_manager:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    validate_certs: no
+    tag_names:
+     - "{{ tag_name1 }}"
+     - "{{ tag_name2 }}"
+     - "{{ tag_name3 }}"
+    object_name: "{{ object_name }}"
+    object_type: "{{ object_type }}"
+    state: add
+  register: tag
+  delegate_to: localhost
+- debug:
+   var: tag

@@ -1,0 +1,11 @@
+- name: Disable ipv6
+  shell: "esxcli network ip set --ipv6-enabled=false"
+  register: ipv6
+- debug:
+   var: ipv6.stdout_lines
+
+- name: Get ipv6 info and confirm
+  shell: "esxcli network ip interface ipv6 get"
+  register: ipv6_confirm
+- debug:
+   var: ipv6_confirm.stdout_lines

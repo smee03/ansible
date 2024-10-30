@@ -1,0 +1,7 @@
+- name: Provide information about vCenter
+  vmware_about_info:
+    hostname: '{{ esxi_hostname }}'
+    username: '{{ esxi_username }}'
+    password: '{{ esxi_password }}'
+  delegate_to: localhost
+  register: vcenter_about_info

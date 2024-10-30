@@ -1,0 +1,88 @@
+- name: Deploy a vCenter OVA
+  vmware_deploy_ovf:
+   hostname: "{{ hostname }}"
+   username: "{{ username }}"
+   password: "{{ password }}"
+   datacenter: "{{ vcenter_datacenter }}"
+   validate_certs: no
+   cluster: "{{ vcenter_cluster }}"
+   datastore: "{{ vcenter_datastore }}"
+   name: "{{ vm_name }}"
+   networks:
+    "Network 1": "{{ vm_network_1 }}"
+   wait_for_ip_address: "{{ wait_for_ip }}"
+   power_on: false
+   ova_path: "{{ ova_path }}"
+   fail_on_spec_warnings: yes
+   inject_ovf_env: yes
+   properties:
+    DeploymentOption.value: "{{ tshirt_size }}"
+    guestinfo.cis.appliance.net.addr.family: "{{ ip_type }}"
+    guestinfo.cis.appliance.net.mode: "static"
+    guestinfo.cis.appliance.net.addr: "{{ vcenter_net_ip_address }}"
+    guestinfo.cis.vmdir.username: "{{ vcenter_username }}"
+    guestinfo.cis.appliance.net.pnid: "{{ vcenter_hostname }}"
+    guestinfo.cis.appliance.net.prefix: "{{ prefix }}"
+    guestinfo.cis.appliance.net.gateway: "{{ vcenter_gateway }}"
+    guestinfo.cis.appliance.net.dns.servers: "{{ vcenter_dns_servers }}"
+    guestinfo.cis.appliance.root.passwd: "{{ root_password }}"
+    guestinfo.cis.ceip_enabled: "False"
+    guestinfo.cis.vmdir.password: "{{ vcenter_password }}"
+    domain: "{{ domain }}"
+    searchpath: "{{ searchpath }}"
+    delegate_to: localhost
+  register: ova_out
+- debug:
+   var: ova_out
+
+- name: update vCenter properties ssh, autoconfig, domain name and user, ntp
+  vmware_guest:
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    validate_certs: no
+    name: "{{ vm_name }}"
+    state: present
+    vapp_properties:
+      - id: guestinfo.cis.appliance.ssh.enabled
+        type: boolean
+        value: "True"
+        userConfigurable: true
+      - id: guestinfo.cis.deployment.autoconfig
+        type: boolean
+        value: "True"
+        userConfigurable: true
+      - id: guestinfo.cis.ad.domain-name
+        type: string
+        value: "{{ domain }}"
+        userConfigurable: true
+      - id: guestinfo.cis.ad.domain.username
+        type: string
+        value: "{{ vcenter_username }}"
+        userConfigurable: true
+      - id: guestinfo.cis.appliance.ntp.servers
+        type: string
+        value: "nbcutime1.inbcu.com, nbcutime2.inbcu.com, nbcutime3.inbcu.com, nbcutime4.inbcu.com"
+        userConfigurable: true
+  delegate_to: localhost
+  register: vapp_out
+- debug:
+   var: vapp_out
+
+- name: Power on vCenter VM
+  vmware_guest:
+    hostname: "{{ hostname }}"
+    username: "{{ username }}"
+    password: "{{ password }}"
+    name: "{{ vm_name }}"
+    validate_certs: no
+    state: poweredon
+    hardware:
+     version: latest
+  delegate_to: localhost
+  register: poweron
+- debug:
+   var: poweron
+
+- pause:
+   minutes: "{{ pause_minutes }}"

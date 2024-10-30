@@ -1,0 +1,84 @@
+- name: Get PCI vmHBA MAC List
+  shell: esxcli storage core adapter list | grep -i fc | awk -F ":" '{print $2}' | sed -e 's/\(..\)/\1:/g; s/.$//' -e 's/^[^0-9a-fA-F]*\([0-9a-fA-F:]*\).*$/\1/' -e 's/:$//' | awk '{print "vhba" NR+1 "\"" $0 "\""}'
+  register: vmhbalist
+- debug:
+    msg:
+      - "The output will be starting at the top from vmhba2 down to vmhba5"
+      - "{{ vmhbalist.stdout_lines }}"
+
+- name: Format vHBA
+  set_fact:
+    formatted_vhba_info: |
+      vHBA Information:
+      --------------------
+      {% for item in mac_addresses %}
+      vmhba{{ loop.index + 1 }}: {{ item }}
+      {% endfor %}
+  vars:
+    mac_addresses: "{{ vmhbalist.stdout_lines }}"
+
+    #- name: Save formatted vHBA information to file
+    # copy:
+    # content: "{{ formatted_vhba_info }}"
+    # dest: /etc/ansible/roles/GetvHBAInfo/files/vhba_info.txt
+    # delegate_to: localhost
+
+    #- debug:
+    # msg: "Formatted vHBA information:\n{{ formatted_vhba_info }}"
+
+
+    # delegate_to: localhost
+
+    #- debug:
+    # msg: "Formatted vHBA information:\n{{ formatted_vhba_info }}"
+
+
+# get server profile MOID from server name
+- name: "Intersight - retrieve MOID from profile {{ profile_name }}"
+  intersight_rest_api:
+    api_private_key: "{{ intersight_api_private_key }}"
+    api_key_id: "{{ intersight_api_public_key }}"
+    validate_certs: false
+    resource_path: /server/Profiles
+    query_params:
+      $filter: "Name eq '{{ profile_name }}'"
+      $select: "Moid"
+    return_list: true
+  register: profile_resp
+  delegate_to: localhost
+
+# register variable for profile MOID
+- name: "Intersight - register variable for profile MOID"
+  set_fact:
+    profile_moid: "{{ profile_resp.api_response[0].Moid }}"
+  delegate_to: localhost
+
+# get vHBA WWPNs from a given host
+- name: "Intersight - retrieve vHBA WWPNs from host {{ profile_moid }}"
+  intersight_rest_api:
+    api_private_key: "{{ intersight_api_private_key }}"
+    api_key_id: "{{ intersight_api_public_key }}"
+    validate_certs: false
+    resource_path: /vnic/FcIfs
+    query_params:
+      $filter: "Profile.Moid eq '{{ profile_moid }}'"
+      $select: "Name,Wwpn"
+      $orderby: "Name"
+    return_list: true
+  register: fnic_resp
+  delegate_to: localhost
+
+- name: "output Name and WWPN of each vHBA"
+  debug:
+    msg: "vHBA Name: {{ item.Name }}, WWPN: {{ item.Wwpn }}"
+  loop: "{{ fnic_resp.api_response }}"
+  delegate_to: localhost
+
+- name:
+  template:
+    src: templates/vhba_report.j2
+    dest: "{{ workspace }}/vhbareport.html"
+  vars:
+    vmhbalist: "{{ vmhbalist }}"
+    fnic_resp: "{{ fnic_resp }}"
+    mac_addresses: "{{ mac_addresses }}"
