@@ -1,0 +1,31 @@
+- name: Create temp directory to install files
+  win_tempfile:
+   state: directory
+   path: C:\AppTemp
+
+- name: Copy powershell script
+  ansible.windows.win_copy:
+   src: files/GetCriticalApps.ps1
+   dest: C:\AppTemp
+
+- name: Run powershell script
+  win_command: powershell.exe -ExecutionPolicy ByPass -File C:\AppTemp\GetCriticalApps.ps1
+  register: AppList
+- set_fact:
+   AppList_var: "{{ AppList.stdout_lines }}"
+- debug:
+   var: AppList_var
+
+- name: Remove Temp folder and files
+  win_file:
+   path: C:\AppTemp
+   state: absent
+
+- name: Windows - Replace Windows Inventory File with Default Blank
+  template:
+    src: windows.j2
+    dest: /var/ansible/WindowsCriticalAppList
+    owner: root
+    group: root
+    mode: 0644
+  delegate_to: hynpl-ansbl-01v

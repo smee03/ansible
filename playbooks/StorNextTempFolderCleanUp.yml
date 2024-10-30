@@ -1,0 +1,13 @@
+        - name: Remove Temp folder and files
+          win_file:
+           path: C:\StorNextTemp
+           state: absent
+
+        - name: Windows - Replace Windows Inventory File with Default Blank
+          template:
+           src: windows.j2
+           dest: /var/ansible/WindowsStorNext
+           owner: root
+           group: root
+           mode: 0644
+          delegate_to: hynpl-ansbl-01v

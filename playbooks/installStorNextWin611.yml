@@ -1,0 +1,81 @@
+        - name: Confirming the version of StorNext File System
+          ansible.windows.win_powershell:
+           script: |
+            function Get-StorNextApplicationVersion {
+            $applicationName = "StorNext File System"
+            $my_check = (gp HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*) | Select-Object DisplayName, DisplayVersion, InstallDate | Where -Property DisplayName -Match $applicationName
+            $versionNumber = $my_check.DisplayVersion
+            if ($my_check) {
+            $versionNumber
+            }
+            else {
+            write-warning "Application not found"
+            }
+            }
+            Get-StorNextApplicationVersion
+           arguments:
+           - -ExecutionPolicy
+           - ByPass
+          register: verifyversion
+        - set_fact:
+           version_var: "{{ verifyversion.output }}"
+#           cacheable: yes
+#        - set_fact:
+#           latestversion_var: "7.0.1"
+        - debug:
+           var: version_var
+#          failed_when:
+#           - "'7.0.1' or [] in version_var"
+#          - version_var == "7.0.1"
+#        - fail:
+#           msg: Current version is up to date
+#          when: version_var != "'7.0.1'"
+
+        - name: Create temp directory to install files
+          ansible.windows.win_tempfile:
+           state: directory
+           path: C:\StorNextTemp
+
+        - name: Copy StorNext install and other files
+          ansible.windows.win_copy:
+           src: files/6.1.1
+           dest: C:\StorNextTemp
+
+        - name: UnInstall StorNext File System
+          win_command: powershell.exe -ExecutionPolicy ByPass -File C:\StorNextTemp\6.1.1\stornextUninstall.ps1
+
+        - name: Install StorNext File System Version 6.1.1
+          win_command: powershell.exe -ExecutionPolicy ByPass -File C:\StorNextTemp\6.1.1\stornextinstall.ps1
+
+        - name: pause 15 seconds for installation to finish
+          pause:
+           seconds: 15
+
+        - name: Confirm new version of StorNext File System
+          ansible.windows.win_powershell:
+           script: |
+            function Get-StorNextApplicationVersion {
+            $applicationName = "StorNext File System"
+            $my_check = (gp HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*) | Select-Object DisplayName, DisplayVersion, InstallDate | Where -Property DisplayName -Match $applicationName
+            $versionNumber = $my_check.DisplayVersion
+            if ($my_check) {
+            $versionNumber
+            }
+            else {
+            write-warning "Application not found"
+            }
+            }
+            Get-StorNextApplicationVersion
+           arguments:
+           - -ExecutionPolicy
+           - ByPass
+          register: verifyversionagain
+        - set_fact:
+           version2_var: "{{ verifyversionagain.output }}"
+        - debug:
+           var: version2_var
+
+        - name: Remove Temp folder and files
+          win_file:
+           path: C:\StorNextTemp
+           state: absent

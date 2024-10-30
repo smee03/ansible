@@ -1,0 +1,7 @@
+- name: run powershell script
+  become: yes
+  become_method: runas
+  become_user: srv_SNOW-JEA@TBSBEST.COM
+  win_command: powershell.exe -ExecutionPolicy ByPass -File C:\Scripts\HBO-GPOLinks\GPO_Disable.ps1
+  register: pwshgpo
+- debug: var=pwshgpo.stdout_lines
